@@ -1,0 +1,48 @@
+:root {
+  /* Paleta EkiNature extraída de mis mockups */
+  --color-primary: #1a3c1e;    /* Verde Oscuro (Textos, Botones fuertes) */
+  --color-secondary: #6ba33b;  /* Verde Claro (Hojas, detalles) */
+  --color-accent: #e8c465;     /* Dorado/Amarillo (Botones secundarios) */
+  --color-bg-cream: #f4eadd;   /* Beige Fondo Principal */
+  --color-white: #ffffff;      /* Blanco puro (Cartas) */
+  
+  /* Tipografía base */
+  --font-main: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: var(--color-bg-cream); /* Aplica el beige a toda la web */
+  color: var(--color-primary);
+  font-family: var(--font-main);
+}
+
+/* --- Clases Personalizadas para Bootstrap --- */
+
+/* Fondo Crema */
+.bg-cream { 
+  background-color: var(--color-bg-cream) !important; 
+}
+
+/* Botón Principal (Verde Oscuro) */
+.btn-primary-custom {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px; /* Bordes redondeados como en tu diseño */
+  transition: all 0.3s ease;
+}
+
+.btn-primary-custom:hover {
+  background-color: #142e17; /* Un poco más oscuro al pasar el mouse */
+  color: white;
+  transform: translateY(-2px); /* Pequeño efecto de elevación */
+}
+
+/* Botón Secundario (Dorado/Beige oscuro) */
+.btn-accent-custom {
+  background-color: var(--color-accent);
+  color: var(--color-primary);
+  border: none;
+  font-weight: bold;
+}
