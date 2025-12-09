@@ -2,8 +2,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navbar';
 import Home from './pages/Home';
 import Productos from './pages/Productos';
-import { CartProvider } from './context/CartContext'; // <--- Importamos
+import { CartProvider } from './context/CartContext'; 
 import 'bootstrap/dist/css/bootstrap.min.css';
+import Carrito from './pages/Carrito';
 
 function App() {
   return (
@@ -17,8 +18,7 @@ function App() {
             <Route path="/about" element={<div className="container mt-5"><h2 className="text-center">Sobre Nosotros</h2></div>} />
             <Route path="/productos" element={<Productos />} />
             <Route path="/contacto" element={<div className="container mt-5"><h2 className="text-center">Contáctanos</h2></div>} />
-            {/* Pronto crearemos la pagina real del carrito */}
-            <Route path="/carrito" element={<div className="container mt-5"><h2 className="text-center">Tu Carrito de Compras</h2></div>} />
+            <Route path="/carrito" element={<Carrito />} />
           </Routes>
         </div>
       </Router>

@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-
-const productoRoutes = require('./routes/productoRoutes'); // <--- 1. Importamos las rutas
+const productoRoutes = require('./routes/productoRoutes'); 
+const pedidoRoutes = require('./routes/pedidoRoutes');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -13,6 +13,7 @@ const app = express();
 // Middlewares (Configuraciones base)
 app.use(cors()); // Permite conexiones desde React
 app.use(express.json()); // Permite recibir datos JSON (ej: al crear un pedido)
+app.use('/api/pedidos', pedidoRoutes);
 
 // Ruta de prueba inicial
 app.get('/', (req, res) => {
