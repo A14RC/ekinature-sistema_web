@@ -37,6 +37,19 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  // FUNCION Restar unidad
+  const decreaseQuantity = (productId) => {
+    setCart(prevCart => {
+      return prevCart.map(item => {
+        // Si es el producto y tiene más de 1, restamos
+        if (item.id === productId && item.quantity > 1) {
+          return { ...item, quantity: item.quantity - 1 };
+        }
+        return item; // Si tiene 1, no hacemos nada (para eliminar usa el botón borrar)
+      });
+    });
+  };
+
   // Funcion: Eliminar producto
   const removeFromCart = (productId) => {
     setCart(prevCart => prevCart.filter(item => item.id !== productId));
@@ -53,6 +66,7 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider value={{ 
       cart, 
       addToCart, 
+      decreaseQuantity,
       removeFromCart, 
       clearCart, 
       totalItems, 
