@@ -5,6 +5,7 @@ import Productos from './pages/Productos';
 import { CartProvider } from './context/CartContext'; 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Carrito from './pages/Carrito';
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/productos" element={<Productos />} />
             <Route path="/contacto" element={<div className="container mt-5"><h2 className="text-center">Contáctanos</h2></div>} />
             <Route path="/carrito" element={<Carrito />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </div>
       </Router>
