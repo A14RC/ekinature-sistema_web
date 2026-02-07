@@ -16,13 +16,13 @@ const controller = {
         try {
             await connection.beginTransaction();
 
-            // Validación de datos del cliente (Si no viene, ponemos valores por defecto)
+            // Validación de datos del cliente (Si no viene, pone valores por defecto)
             const nombreCliente = cliente?.nombre || 'Cliente Invitado';
             const cedulaCliente = cliente?.cedula || 'N/A';
             const direccionCliente = cliente?.direccion || 'Sin dirección';
             const telefonoCliente = cliente?.telefono || 'N/A';
 
-            // Insertamos la Cabecera del Pedido
+            // Inserta la Cabecera del Pedido
             const [resultPedido] = await connection.query(
                 `INSERT INTO pedidos 
                 (cliente_nombre, cliente_cedula, direccion, telefono, subtotal, iva, envio, descuento, total) 
@@ -37,7 +37,7 @@ const controller = {
             );
             const pedidoId = resultPedido.insertId;
 
-            // Insertamos los Detalles (Productos)
+            // Inserta los Detalles (Productos)
             const queriesDetalles = items.map(item => {
                 return connection.query(
                     'INSERT INTO detalles_pedido (pedido_id, producto_id, cantidad, precio_unitario) VALUES (?, ?, ?, ?)',
@@ -70,14 +70,26 @@ const controller = {
         }
     },
 
-    // 3. ACTUALIZAR ESTADO
+    // 3. ACTUALIZAR ESTADO (Con limpieza de entregas)
     actualizarEstado: async (req, res) => {
         const { id } = req.params;
         const { estado } = req.body;
+        
         try {
-            await db.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, id]);
-            res.json({ mensaje: 'Estado actualizado' });
+            const connection = await db.getConnection();
+            
+            // Si regresa a 'pendiente', borra la entrega programada
+            if (estado === 'pendiente') {
+                await connection.query('DELETE FROM entregas WHERE pedido_id = ?', [id]);
+            }
+
+            // Actualizamos el estado normal
+            await connection.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, id]);
+            
+            connection.release();
+            res.json({ mensaje: 'Estado actualizado y agenda sincronizada' });
         } catch (error) {
+            console.error(error);
             res.status(500).json({ error: 'Error al actualizar' });
         }
     },

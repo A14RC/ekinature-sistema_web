@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const productoRoutes = require('./routes/productoRoutes'); 
 const pedidoRoutes = require('./routes/pedidoRoutes');
 const authRoutes = require('./routes/authRoutes');
+const entregaRoutes = require('./routes/entregaRoutes');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -16,7 +17,9 @@ app.use(cors()); // Permite conexiones desde React
 app.use(express.json()); // Permite recibir datos JSON (ej: al crear un pedido)
 app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/productos', productoRoutes); 
-app.use('/api/auth', authRoutes)
+app.use('/api/auth', authRoutes);
+app.use('/api/entregas', entregaRoutes);
 
-// Exportamos la app para usarla en el arranque
+
+
 module.exports = app;
