@@ -1,21 +1,21 @@
-Periodo: 10 Noviembre 2025 – 23 Noviembre 2025 Foco: Desarrollo del Frontend e Integración de Servicios
+# Bitácora de Avance: Sprint 3
+**Proyecto:** EkiNature-Tesis
+**Periodo:** 10 Noviembre 2025 – 23 Noviembre 2025
+**Módulo:** Desarrollo del Frontend e Integración de Servicios
 
-Se completó el desarrollo de la interfaz de usuario (Frontend) utilizando la biblioteca React, logrando una integración funcional con la API REST desarrollada previamente. El sistema ahora permite la visualización pública del catálogo de productos con una identidad visual corporativa definida.
+## 1. Resumen Ejecutivo
+Se completó el desarrollo de la interfaz de usuario (Cliente Web) utilizando la biblioteca **React**, logrando una integración funcional con la API REST desarrollada en el Sprint anterior. El sistema ahora permite la visualización pública del catálogo de productos con la identidad visual corporativa definida.
 
-Actividades Realizadas:
+## 2. Actividades Técnicas Realizadas
+* **Configuración del Entorno:** Inicialización del proyecto con **Vite** + **React**. Integración del framework de diseño **Bootstrap** y configuración de variables CSS globales para la paleta de colores corporativa (Verde/Crema/Dorado).
+* **Arquitectura de Componentes:**
+    * `Navbar.jsx`: Barra de navegación responsiva y persistente (Sticky).
+    * `Home.jsx`: Landing page con sección "Hero", llamada a la acción y presentación de beneficios.
+    * `Productos.jsx`: Vista del catálogo que renderiza dinámicamente tarjetas de productos.
+* **Lógica de Consumo de Datos:**
+    * Implementación de `productService.js` usando **Axios** para la comunicación asíncrona con el Backend.
+    * Manejo de estados de carga (`Loading...`) y renderizado de imágenes dinámicas desde el directorio público.
+* **Navegación:** Configuración de **React Router DOM** para gestionar las rutas (`/`, `/productos`, `/contacto`) como una SPA (Single Page Application).
 
-Configuración del Cliente Web: Implementación del entorno React con Vite, integrando Bootstrap para el diseño responsivo y la gestión de estilos mediante variables CSS personalizadas (Paleta Corporativa EkiNature).
-
-Arquitectura de Componentes: Desarrollo modular de la interfaz:
-
-Navbar.jsx: Navegación responsiva y persistente.
-
-Home.jsx: Landing page con sección "Hero" y presentación de beneficios.
-
-Productos.jsx: Vista de catálogo dinámico.
-
-Consumo de API: Implementación de la capa de servicios (productService.js) utilizando Axios para gestionar la comunicación asíncrona con el Backend (Node.js/MySQL).
-
-Renderizado Dinámico: Programación de la lógica para mapear los datos JSON provenientes de la base de datos en tarjetas de producto visuales, incluyendo la gestión de rutas de imágenes estáticas desde el directorio público.
-
-Gestión de Rutas: Configuración de React Router para la navegación SPA (Single Page Application) sin recargas de página.
+## 3. Estado Final del Sprint
+El módulo de visualización de productos es 100% funcional. El cliente puede navegar y ver precios y descripciones reales traídos desde la Base de Datos MySQL.

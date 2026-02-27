@@ -31,8 +31,8 @@ async function crearAdmin() {
             console.error('❌ Error al crear admin:', error);
         }
     } finally {
-        connection.release(); // Liberar conexión
-        process.exit(); // Cerrar el script
+        connection.release(); 
+        process.exit(); 
     }
 }
 

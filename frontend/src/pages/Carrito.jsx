@@ -1,178 +1,195 @@
 import React, { useState } from 'react';
-import { Container, Table, Button, Card, Row, Col, Form, Alert } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import orderService from '../services/orderService';
+import { Container, Table, Button, Form, Row, Col, Card, Alert } from 'react-bootstrap';
+import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const Carrito = () => {
-  const { cart, removeFromCart, addToCart, decreaseQuantity, clearCart, totalPrice } = useCart();
-  const [processing, setProcessing] = useState(false);
-  const navigate = useNavigate();
+    const { cart, removeFromCart, clearCart } = useCart();
+    const [step, setStep] = useState(1);
+    const [metodoPago, setMetodoPago] = useState('Transferencia Bancaria');
+    const [datos, setDatos] = useState({ nombre: '', cedula: '', direccion: '', telefono: '', email: '' });
 
-  
-  const [formData, setFormData] = useState({
-    nombre: '',
-    cedula: '',
-    telefono: '',
-    direccion: ''
-  });
+    // CÁLCULO PROFESIONAL DEL CARRITO
+    const subtotal = cart.reduce((acc, item) => {
+        const precio = Number(item.precio) || 0;
+        const cant = Number(item.cantidad) || 0;
+        return acc + (precio * cant);
+    }, 0);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    const envio = 5; // $5 USD de envío fijo
+    const subtotalConEnvio = subtotal + envio;
+    const iva = subtotalConEnvio * 0.15; // IVA del 15%
+    const totalCompra = subtotalConEnvio + iva;
 
-  const COSTO_ENVIO = 3.50;
-  const TASA_IVA = 0.15;
-  const subtotal = totalPrice;
-  const iva = subtotal * TASA_IVA;
-  const totalPagar = subtotal + iva + COSTO_ENVIO;
+    const handleFinalizar = async (e) => {
+        e.preventDefault();
+        const pedido = {
+            cliente_nombre: datos.nombre,
+            cliente_cedula: datos.cedula,
+            direccion: datos.direccion,
+            telefono: datos.telefono,
+            email_cliente: datos.email,
+            subtotal: subtotal.toFixed(2),
+            envio: envio.toFixed(2),
+            iva: iva.toFixed(2),
+            total: totalCompra.toFixed(2),
+            productos: cart,
+            metodo_pago: metodoPago
+        };
 
-  const handleCheckout = async (e) => {
-    e.preventDefault(); // Evitar recarga del form
-    if (cart.length === 0) return;
+        try {
+            await axios.post('http://localhost:3000/api/pedidos', pedido);
+            alert('¡Pedido procesado con éxito!');
+            clearCart();
+            setStep(3);
+        } catch (error) {
+            alert('Error en el servidor. Revise la consola.');
+        }
+    };
 
-    setProcessing(true);
-
-    try {
-      // Preparamos el paquete completo para el Backend
-      const orderData = {
-        items: cart,
-        subtotal: subtotal.toFixed(2),
-        iva: iva.toFixed(2),
-        envio: COSTO_ENVIO.toFixed(2),
-        total: totalPagar.toFixed(2),
-        cliente: formData // <--- Enviamos los datos del formulario HU9
-      };
-
-      const response = await orderService.createOrder(orderData);
-      
-      alert(`¡Pedido Realizado con Éxito! 🚚\nOrden #${response.pedidoId}\nNos pondremos en contacto al: ${formData.telefono}`);
-      clearCart();
-      navigate('/');
-
-    } catch (error) {
-      alert("Error al procesar el pedido. Verifica la conexión.");
-      console.error(error);
-    } finally {
-      setProcessing(false);
+    if (step !== 3 && cart.length === 0) {
+        return <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '60px' }}><Container className="text-center"><div style={{ fontSize: '4rem', marginBottom: '20px' }}>🛒</div><h2 style={{ color: '#2e7d32', marginBottom: '30px' }}>El carrito está vacío</h2><Button as={Link} to="/productos" className="fw-bold px-5 py-3" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Ir a Tienda</Button></Container></div>;
     }
-  };
 
-  if (cart.length === 0) return (
-      <Container className="py-5 text-center">
-        <h2 className="mb-4">Tu carrito está vacío 😔</h2>
-        <Link to="/productos" className="btn btn-primary-custom px-4">Ir a comprar</Link>
-      </Container>
-  );
-
-  return (
-    <Container className="py-5">
-      <h2 className="mb-5 fw-bold text-center text-primary-custom">Finalizar Compra</h2>
-      
-      <Row className="g-5">
-        {/* COLUMNA IZQUIERDA: FORMULARIO DE DATOS */}
-        <Col lg={7}>
-          <Card className="shadow-sm border-0 mb-4">
-            <Card.Header className="bg-white py-3">
-              <h5 className="mb-0 fw-bold">1. Datos de Envío y Facturación</h5>
-            </Card.Header>
-            <Card.Body className="p-4">
-              <Form id="checkoutForm" onSubmit={handleCheckout}>
-                <Row>
-                  <Col md={6} className="mb-3">
-                    <Form.Label>Nombre Completo</Form.Label>
-                    <Form.Control type="text" name="nombre" required placeholder="Ej: Juan Pérez" onChange={handleInputChange} />
-                  </Col>
-                  <Col md={6} className="mb-3">
-                    <Form.Label>Cédula / RUC</Form.Label>
-                    <Form.Control type="text" name="cedula" required placeholder="Ej: 171..." onChange={handleInputChange} />
-                  </Col>
-                </Row>
-                <Row>
-                  <Col md={6} className="mb-3">
-                    <Form.Label>Teléfono Celular</Form.Label>
-                    <Form.Control type="tel" name="telefono" required placeholder="Ej: 099..." onChange={handleInputChange} />
-                  </Col>
-                  <Col md={6} className="mb-3">
-                    <Form.Label>Ciudad</Form.Label>
-                    <Form.Control type="text" placeholder="Quito" readOnly className="bg-light" />
-                  </Col>
-                </Row>
-                <div className="mb-3">
-                  <Form.Label>Dirección Exacta de Entrega</Form.Label>
-                  <Form.Control as="textarea" rows={2} name="direccion" required placeholder="Calle principal, secundaria, número de casa..." onChange={handleInputChange} />
-                </div>
-              </Form>
-            </Card.Body>
-          </Card>
-
-          <h5 className="fw-bold mb-3">2. Revisión de Productos</h5>
-          <Table responsive hover className="align-middle shadow-sm bg-white">
-            <thead className="bg-light">
-              <tr>
-                <th>Producto</th>
-                <th className="text-center">Cant.</th>
-                <th>Subtotal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <div className="d-flex align-items-center">
-                       <img src={`/img/${item.imagen_url}`} alt={item.nombre} style={{ width: '40px', objectFit: 'contain', marginRight: '10px' }} onError={(e)=>{e.target.onerror=null;e.target.src="https://placehold.co/40"}}/>
-                       <span className="fw-semibold text-primary-custom" style={{fontSize: '0.9rem'}}>{item.nombre}</span>
+    return (
+        <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '40px', paddingBottom: '40px' }}>
+            <Container className="my-5">
+            {step === 1 && (
+                <Card className="p-5 shadow-lg border-0" style={{ borderRadius: '25px', backgroundColor: 'white' }}>
+                    <h2 className="mb-4 fw-bold" style={{ color: '#1b5e20' }}>🛒 Revisión de Pedido</h2>
+                    <Table responsive hover style={{ marginBottom: '30px' }}>
+                        <thead style={{ backgroundColor: '#f1f8e9' }}>
+                            <tr>
+                                <th style={{ color: '#2e7d32', fontWeight: 'bold' }}>Producto</th>
+                                <th style={{ color: '#2e7d32', fontWeight: 'bold' }}>Cantidad</th>
+                                <th style={{ color: '#2e7d32', fontWeight: 'bold' }}>Subtotal</th>
+                                <th style={{ color: '#2e7d32', fontWeight: 'bold' }} className="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {cart.map(item => (
+                                <tr key={item.id}>
+                                    <td className="fw-semibold">{item.nombre}</td>
+                                    <td>{item.cantidad}</td>
+                                    <td className="fw-bold text-success">${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}</td>
+                                    <td className="text-center"><Button variant="outline-danger" size="sm" onClick={() => removeFromCart(item.id)}>✕ Quitar</Button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                    <div style={{ backgroundColor: '#f9f9f9', padding: '25px', borderRadius: '15px', marginBottom: '20px' }}>
+                        <div className="mb-3 pb-3" style={{ borderBottom: '1px solid #ddd' }}>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <span style={{ color: '#555' }}>Subtotal de Productos:</span>
+                                <span className="fw-bold" style={{ color: '#333' }}>${subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <span style={{ color: '#555' }}>Envío:</span>
+                                <span className="fw-bold" style={{ color: '#333' }}>${envio.toFixed(2)}</span>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span style={{ color: '#555' }}>IVA (15%):</span>
+                                <span className="fw-bold" style={{ color: '#2e7d32' }}>${iva.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <h4 style={{ color: '#1b5e20', marginBottom: 0 }}>Total a Pagar:</h4>
+                            <h3 style={{ color: '#2e7d32', marginBottom: 0 }}>${totalCompra.toFixed(2)}</h3>
+                        </div>
                     </div>
-                  </td>
-                  <td className="text-center">
-                    {/* BOTONES DE CANTIDAD */}
-                    <div className="d-flex justify-content-center align-items-center gap-2">
-                        <Button variant="outline-secondary" size="sm" onClick={() => decreaseQuantity(item.id)} disabled={item.quantity <= 1}>-</Button>
-                        <span className="fw-bold px-2">{item.quantity}</span>
-                        <Button variant="outline-success" size="sm" onClick={() => addToCart(item)}>+</Button>
-                    </div>
-                  </td>
-                  <td className="fw-bold">${(item.precio * item.quantity).toFixed(2)}</td>
-                  <td><Button variant="link" className="text-danger p-0" onClick={() => removeFromCart(item.id)}>✕</Button></td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Col>
+                    <Button className="w-100 fw-bold py-3" size="lg" onClick={() => setStep(2)} style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Proceder al Pago</Button>
+                </Card>
+            )}
 
-        {/* COLUMNA DERECHA: RESUMEN Y PAGO */}
-        <Col lg={5}>
-          <Card className="shadow border-0 bg-cream sticky-top" style={{ top: '100px' }}>
-            <Card.Body className="p-4">
-              <h4 className="card-title fw-bold mb-4 text-primary-custom">Resumen de Pago</h4>
-              
-              <div className="d-flex justify-content-between mb-2"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
-              <div className="d-flex justify-content-between mb-2"><span>IVA (15%):</span><span>${iva.toFixed(2)}</span></div>
-              <div className="d-flex justify-content-between mb-3"><span>Envío:</span><span>${COSTO_ENVIO.toFixed(2)}</span></div>
-              
-              <hr />
-              
-              <div className="d-flex justify-content-between mb-4 fw-bold fs-3 text-primary-custom">
-                <span>Total:</span><span>${totalPagar.toFixed(2)}</span>
-              </div>
-              
-              {/* El botón está fuera del form, pero usa el atributo form="checkoutForm" para disparar el submit */}
-              <Button 
-                className="w-100 btn-primary-custom py-3 fs-5 shadow-sm" 
-                type="submit" 
-                form="checkoutForm" 
-                disabled={processing}
-              >
-                {processing ? 'Registrando Pedido...' : 'Confirmar Pedido'}
-              </Button>
-              <p className="text-center mt-3 text-muted small">🔒 Pago seguro contra entrega o transferencia.</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-  );
+            {step === 2 && (
+                <Form onSubmit={handleFinalizar}>
+                    <Row>
+                        <Col md={7}>
+                            <Card className="p-5 shadow-lg border-0 mb-4" style={{ borderRadius: '25px', backgroundColor: 'white' }}>
+                                <h4 className="fw-bold mb-4" style={{ color: '#1b5e20' }}>📍 Detalles de Despacho</h4>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold">Nombre Completo</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, nombre: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="Juan Pérez" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold">Cédula/RUC</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, cedula: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="1234567890" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold">Email</Form.Label>
+                                    <Form.Control type="email" required onChange={e => setDatos({...datos, email: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="tu@email.com" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold">Dirección de Envío</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, direccion: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="Calle Principal 123, Quito" />
+                                </Form.Group>
+                                <Form.Group className="mb-0">
+                                    <Form.Label className="fw-semibold">Celular</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, telefono: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="+593 99 000 0000" />
+                                </Form.Group>
+                            </Card>
+                        </Col>
+                        <Col md={5}>
+                            <Card className="p-5 shadow-lg border-0" style={{ borderRadius: '25px', backgroundColor: '#f1f8e9' }}>
+                                <h4 className="fw-bold mb-4" style={{ color: '#1b5e20' }}>💳 Método de Pago</h4>
+                                <Form.Select className="mb-4" onChange={e => setMetodoPago(e.target.value)} style={{ borderRadius: '10px', padding: '10px' }}>
+                                    <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                                    <option value="DeUna!">DeUna! (QR)</option>
+                                </Form.Select>
+                                {metodoPago === 'DeUna!' && (
+                                    <div className="text-center mb-4">
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EkiNaturePay" width="150" alt="QR" style={{ borderRadius: '10px' }} />
+                                        <p className="small text-muted mt-3" style={{ fontWeight: '500' }}>Escanea para pagar con DeUna!</p>
+                                    </div>
+                                )}
+                                {metodoPago === 'Transferencia Bancaria' && (
+                                    <Alert variant="success" className="mb-4" style={{ borderRadius: '10px' }}>
+                                        <b>Banco Pichincha</b><br/>
+                                        <span style={{ fontSize: '0.9rem' }}>Titular: Andrés Romero</span><br/>
+                                        <span style={{ fontSize: '0.9rem' }}>Cuenta: 220XXXXXXX</span>
+                                    </Alert>
+                                )}
+                                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px' }}>
+                                    <div className="mb-3 pb-3" style={{ borderBottom: '1px solid #eee' }}>
+                                        <div className="d-flex justify-content-between align-items-center mb-2" style={{ fontSize: '0.95rem' }}>
+                                            <span style={{ color: '#666' }}>Subtotal:</span>
+                                            <span className="fw-bold" style={{ color: '#333' }}>${subtotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className="d-flex justify-content-between align-items-center mb-2" style={{ fontSize: '0.95rem' }}>
+                                            <span style={{ color: '#666' }}>Envío:</span>
+                                            <span className="fw-bold" style={{ color: '#333' }}>${envio.toFixed(2)}</span>
+                                        </div>
+                                        <div className="d-flex justify-content-between align-items-center" style={{ fontSize: '0.95rem' }}>
+                                            <span style={{ color: '#666' }}>IVA (15%):</span>
+                                            <span className="fw-bold" style={{ color: '#2e7d32' }}>${iva.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <p style={{ color: '#666', marginBottom: '5px', fontSize: '0.9rem' }}>Total a Pagar</p>
+                                        <h3 style={{ color: '#2e7d32', marginBottom: 0 }}>${totalCompra.toFixed(2)}</h3>
+                                    </div>
+                                </div>
+                                <Button type="submit" className="w-100 fw-bold py-3" size="lg" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>✓ Finalizar Compra</Button>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Form>
+            )}
+
+            {step === 3 && (
+                <Card className="p-5 shadow-lg border-0 text-center" style={{ borderRadius: '25px', backgroundColor: 'white' }}>
+                    <div style={{ fontSize: '5rem', marginBottom: '20px' }}>✅</div>
+                    <h1 className="fw-bold mb-3" style={{ color: '#1b5e20' }}>¡Pedido Confirmado!</h1>
+                    <p style={{ fontSize: '1.1rem', color: '#666', marginBottom: '30px' }}>
+                        Tu pedido ha sido procesado correctamente. Revisa tu correo electrónico para los detalles del envío.
+                    </p>
+                    <Button as={Link} to="/" className="fw-bold px-5 py-3" size="lg" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Volver al Inicio</Button>
+                </Card>
+            )}
+        </Container>
+        </div>
+    );
 };
 
 export default Carrito;

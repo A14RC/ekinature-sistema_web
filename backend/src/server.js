@@ -1,25 +1,27 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const productoRoutes = require('./routes/productoRoutes'); 
-const pedidoRoutes = require('./routes/pedidoRoutes');
-const authRoutes = require('./routes/authRoutes');
-const entregaRoutes = require('./routes/entregaRoutes');
-
-// Cargar variables de entorno
-dotenv.config();
-
-// Inicializar la aplicación
 const app = express();
 
-// Middlewares (Configuraciones base)
-app.use(cors()); // Permite conexiones desde React
-app.use(express.json()); // Permite recibir datos JSON (ej: al crear un pedido)
-app.use('/api/pedidos', pedidoRoutes);
-app.use('/api/productos', productoRoutes); 
+// Middlewares
+app.use(cors());
+app.use(express.json());
+
+// Importación de Rutas
+// Asegúrate de que los archivos existan en backend/src/routes/
+const authRoutes = require('./routes/authRoutes');
+const productoRoutes = require('./routes/productoRoutes');
+const pedidoRoutes = require('./routes/pedidoRoutes');
+const contactoRoutes = require('./routes/contactoRoutes');
+
+// Registro de Endpoints
 app.use('/api/auth', authRoutes);
-app.use('/api/entregas', entregaRoutes);
+app.use('/api/productos', productoRoutes);
+app.use('/api/pedidos', pedidoRoutes);
+app.use('/api/contacto', contactoRoutes);
 
-
+// Ruta de prueba para verificar que el server responde
+app.get('/', (req, res) => {
+    res.send('API de EkiNature funcionando correctamente');
+});
 
 module.exports = app;

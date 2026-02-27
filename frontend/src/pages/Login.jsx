@@ -17,12 +17,13 @@ const Login = () => {
 
     try {
       await authService.login(email, password);
-      // Si todo sale bien, redirigir al Dashboard
-      alert("¡Bienvenido Admin!"); 
-      navigate('/admin/dashboard'); 
+      // Forzamos un pequeño delay para asegurar que el token se guarde en localStorage
+      setTimeout(() => {
+        alert("¡Bienvenido Admin!"); 
+        window.location.href = '/admin/dashboard'; // Usamos window.location para forzar recarga limpia
+      }, 500);
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');
-    } finally {
       setLoading(false);
     }
   };
@@ -32,7 +33,7 @@ const Login = () => {
       <Card className="shadow-lg border-0" style={{ width: '400px' }}>
         <Card.Body className="p-5">
           <div className="text-center mb-4">
-            <h3 className="fw-bold" style={{ color: 'var(--color-primary)' }}>EkiNature Admin</h3>
+            <h3 className="fw-bold" style={{ color: '#2e7d32' }}>EkiNature Admin</h3>
             <p className="text-muted">Acceso restringido</p>
           </div>
 
@@ -63,7 +64,8 @@ const Login = () => {
 
             <Button 
               type="submit" 
-              className="w-100 btn-primary-custom py-2" 
+              className="w-100 btn-success py-2 fw-bold" 
+              style={{ backgroundColor: '#2e7d32', border: 'none' }}
               disabled={loading}
             >
               {loading ? 'Ingresando...' : 'Iniciar Sesión'}
