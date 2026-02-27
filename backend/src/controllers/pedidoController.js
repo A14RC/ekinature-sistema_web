@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const mailer = require('../config/mailer');
 
 const pedidoController = {
     crearPedido: async (req, res) => {
@@ -25,6 +26,13 @@ const pedidoController = {
                 await connection.query('INSERT INTO detalles_pedido (pedido_id, producto_id, cantidad, precio_unitario) VALUES (?, ?, ?, ?)', [pedidoId, item.id, item.cantidad, productoBd[0].precio]);
             }
             await connection.commit();
+
+            try {
+                mailer.enviarConfirmacionPedido(cliente.email, { total: pago.total, metodo_pago: pago.metodo_pago });
+            } catch (mailError) {
+                console.log('Error silenciado al enviar correo de pedido:', mailError);
+            }
+
             res.status(201).json({ mensaje: 'Pedido creado exitosamente', pedidoId });
         } catch (error) {
             await connection.rollback();

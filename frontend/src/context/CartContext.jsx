@@ -24,6 +24,18 @@ export const CartProvider = ({ children }) => {
         });
     };
 
+    const updateQuantity = (id, delta, stockLimit) => {
+        setCart(prevCart => prevCart.map(item => {
+            if (item.id === id) {
+                const nuevaCantidad = item.cantidad + delta;
+                if (nuevaCantidad > 0 && nuevaCantidad <= stockLimit) {
+                    return { ...item, cantidad: nuevaCantidad };
+                }
+            }
+            return item;
+        }));
+    };
+
     const removeFromCart = (id) => {
         setCart(prevCart => prevCart.filter(item => item.id !== id));
     };
@@ -31,7 +43,7 @@ export const CartProvider = ({ children }) => {
     const clearCart = () => setCart([]);
 
     return (
-        <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart }}>
+        <CartContext.Provider value={{ cart, addToCart, updateQuantity, removeFromCart, clearCart }}>
             {children}
         </CartContext.Provider>
     );

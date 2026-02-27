@@ -3,7 +3,7 @@ import { Container, Row, Col, Form, Button, Card, Alert } from 'react-bootstrap'
 import axios from 'axios';
 
 const Contacto = () => {
-    const [datos, setDatos] = useState({ nombre: '', email: '', asunto: '', mensaje: '' });
+    const [datos, setDatos] = useState({ nombre: '', email: '', telefono: '', asunto: '', mensaje: '' });
     const [enviado, setEnviado] = useState(false);
 
     const handleSubmit = async (e) => {
@@ -11,7 +11,7 @@ const Contacto = () => {
         try {
             await axios.post('http://localhost:3000/api/contacto', datos);
             setEnviado(true);
-            setDatos({ nombre: '', email: '', asunto: '', mensaje: '' });
+            setDatos({ nombre: '', email: '', telefono: '', asunto: '', mensaje: '' });
         } catch (error) {
             alert("Error al enviar mensaje");
         }
@@ -68,6 +68,16 @@ const Contacto = () => {
                                     />
                                 </Form.Group>
                                 <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold" style={{ color: '#333' }}>Teléfono de Contacto</Form.Label>
+                                    <Form.Control 
+                                        required 
+                                        value={datos.telefono} 
+                                        onChange={e => setDatos({...datos, telefono: e.target.value})}
+                                        style={{ borderRadius: '10px', padding: '10px', borderColor: '#ddd' }}
+                                        placeholder="Ej: 0991234567"
+                                    />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
                                     <Form.Label className="fw-semibold" style={{ color: '#333' }}>Asunto</Form.Label>
                                     <Form.Control 
                                         required 
@@ -86,7 +96,7 @@ const Contacto = () => {
                                         value={datos.mensaje} 
                                         onChange={e => setDatos({...datos, mensaje: e.target.value})}
                                         style={{ borderRadius: '10px', padding: '10px', borderColor: '#ddd' }}
-                                        placeholder="Cuéntanos más disponibilidad..."
+                                        placeholder="Cuéntanos más detalles..."
                                     />
                                 </Form.Group>
                                 <Button className="w-100 py-3 fw-bold" size="lg" type="submit" style={{ borderRadius: '12px', backgroundColor: '#2e7d32', border: 'none' }}>

@@ -5,51 +5,65 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 
 const Carrito = () => {
-    const { cart, removeFromCart, clearCart } = useCart();
+    const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
     const [step, setStep] = useState(1);
     const [metodoPago, setMetodoPago] = useState('Transferencia Bancaria');
-    const [datos, setDatos] = useState({ nombre: '', cedula: '', direccion: '', telefono: '', email: '' });
+    const [datos, setDatos] = useState({ nombre: '', direccion: '', telefono: '', email: '' });
+    const [numComprobante, setNumComprobante] = useState('');
 
-    // CÁLCULO PROFESIONAL DEL CARRITO
     const subtotal = cart.reduce((acc, item) => {
         const precio = Number(item.precio) || 0;
         const cant = Number(item.cantidad) || 0;
         return acc + (precio * cant);
     }, 0);
 
-    const envio = 5; // $5 USD de envío fijo
+    const envio = 5;
     const subtotalConEnvio = subtotal + envio;
-    const iva = subtotalConEnvio * 0.15; // IVA del 15%
+    const iva = subtotalConEnvio * 0.15;
     const totalCompra = subtotalConEnvio + iva;
 
     const handleFinalizar = async (e) => {
         e.preventDefault();
+        
         const pedido = {
-            cliente_nombre: datos.nombre,
-            cliente_cedula: datos.cedula,
-            direccion: datos.direccion,
-            telefono: datos.telefono,
-            email_cliente: datos.email,
-            subtotal: subtotal.toFixed(2),
-            envio: envio.toFixed(2),
-            iva: iva.toFixed(2),
-            total: totalCompra.toFixed(2),
-            productos: cart,
-            metodo_pago: metodoPago
+            cliente: {
+                nombre: datos.nombre,
+                email: datos.email,
+                telefono: datos.telefono,
+                direccion: datos.direccion
+            },
+            pago: {
+                total: totalCompra.toFixed(2),
+                metodo_pago: metodoPago,
+                num_comprobante: numComprobante || 'Pago en efectivo/pendiente'
+            },
+            productos: cart.map(item => ({
+                id: item.id,
+                cantidad: item.cantidad
+            }))
         };
 
         try {
             await axios.post('http://localhost:3000/api/pedidos', pedido);
-            alert('¡Pedido procesado con éxito!');
             clearCart();
             setStep(3);
         } catch (error) {
-            alert('Error en el servidor. Revise la consola.');
+            alert(error.response?.data?.error || 'Error en el servidor al procesar el pedido.');
         }
     };
 
     if (step !== 3 && cart.length === 0) {
-        return <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '60px' }}><Container className="text-center"><div style={{ fontSize: '4rem', marginBottom: '20px' }}>🛒</div><h2 style={{ color: '#2e7d32', marginBottom: '30px' }}>El carrito está vacío</h2><Button as={Link} to="/productos" className="fw-bold px-5 py-3" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Ir a Tienda</Button></Container></div>;
+        return (
+            <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '60px' }}>
+                <Container className="text-center">
+                    <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🛒</div>
+                    <h2 style={{ color: '#2e7d32', marginBottom: '30px' }}>El carrito está vacío</h2>
+                    <Button as={Link} to="/productos" className="fw-bold px-5 py-3" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>
+                        Ir a Tienda
+                    </Button>
+                </Container>
+            </div>
+        );
     }
 
     return (
@@ -58,11 +72,11 @@ const Carrito = () => {
             {step === 1 && (
                 <Card className="p-5 shadow-lg border-0" style={{ borderRadius: '25px', backgroundColor: 'white' }}>
                     <h2 className="mb-4 fw-bold" style={{ color: '#1b5e20' }}>🛒 Revisión de Pedido</h2>
-                    <Table responsive hover style={{ marginBottom: '30px' }}>
+                    <Table responsive hover align="middle" style={{ marginBottom: '30px' }}>
                         <thead style={{ backgroundColor: '#f1f8e9' }}>
                             <tr>
                                 <th style={{ color: '#2e7d32', fontWeight: 'bold' }}>Producto</th>
-                                <th style={{ color: '#2e7d32', fontWeight: 'bold' }}>Cantidad</th>
+                                <th style={{ color: '#2e7d32', fontWeight: 'bold' }} className="text-center">Cantidad</th>
                                 <th style={{ color: '#2e7d32', fontWeight: 'bold' }}>Subtotal</th>
                                 <th style={{ color: '#2e7d32', fontWeight: 'bold' }} className="text-center">Acciones</th>
                             </tr>
@@ -71,9 +85,17 @@ const Carrito = () => {
                             {cart.map(item => (
                                 <tr key={item.id}>
                                     <td className="fw-semibold">{item.nombre}</td>
-                                    <td>{item.cantidad}</td>
+                                    <td>
+                                        <div className="d-flex justify-content-center align-items-center">
+                                            <Button variant="outline-secondary" size="sm" onClick={() => updateQuantity(item.id, -1, item.stock)}>-</Button>
+                                            <span className="mx-3 fw-bold">{item.cantidad}</span>
+                                            <Button variant="outline-secondary" size="sm" onClick={() => updateQuantity(item.id, 1, item.stock)}>+</Button>
+                                        </div>
+                                    </td>
                                     <td className="fw-bold text-success">${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}</td>
-                                    <td className="text-center"><Button variant="outline-danger" size="sm" onClick={() => removeFromCart(item.id)}>✕ Quitar</Button></td>
+                                    <td className="text-center">
+                                        <Button variant="outline-danger" size="sm" onClick={() => removeFromCart(item.id)}>✕ Quitar</Button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -107,26 +129,25 @@ const Carrito = () => {
                     <Row>
                         <Col md={7}>
                             <Card className="p-5 shadow-lg border-0 mb-4" style={{ borderRadius: '25px', backgroundColor: 'white' }}>
-                                <h4 className="fw-bold mb-4" style={{ color: '#1b5e20' }}>📍 Detalles de Despacho</h4>
-                                <Form.Group className="mb-3">
+                                <h4 className="fw-bold mb-3" style={{ color: '#1b5e20' }}>📍 Detalles de Despacho</h4>
+                                <Alert variant="info" style={{ borderRadius: '10px' }}>
+                                    <strong>Importante:</strong> Por favor, ingresa tus datos reales y precisos. Esta información será utilizada exclusivamente por nuestro equipo de logística para coordinar el envío y asegurar la entrega correcta de tu pedido.
+                                </Alert>
+                                <Form.Group className="mb-3 mt-4">
                                     <Form.Label className="fw-semibold">Nombre Completo</Form.Label>
                                     <Form.Control required onChange={e => setDatos({...datos, nombre: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="Juan Pérez" />
-                                </Form.Group>
-                                <Form.Group className="mb-3">
-                                    <Form.Label className="fw-semibold">Cédula/RUC</Form.Label>
-                                    <Form.Control required onChange={e => setDatos({...datos, cedula: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="1234567890" />
                                 </Form.Group>
                                 <Form.Group className="mb-3">
                                     <Form.Label className="fw-semibold">Email</Form.Label>
                                     <Form.Control type="email" required onChange={e => setDatos({...datos, email: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="tu@email.com" />
                                 </Form.Group>
                                 <Form.Group className="mb-3">
-                                    <Form.Label className="fw-semibold">Dirección de Envío</Form.Label>
-                                    <Form.Control required onChange={e => setDatos({...datos, direccion: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="Calle Principal 123, Quito" />
+                                    <Form.Label className="fw-semibold">Dirección de Envío Completa</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, direccion: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="Sector, Calle Principal y Secundaria, Nro. Casa" />
                                 </Form.Group>
                                 <Form.Group className="mb-0">
-                                    <Form.Label className="fw-semibold">Celular</Form.Label>
-                                    <Form.Control required onChange={e => setDatos({...datos, telefono: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="+593 99 000 0000" />
+                                    <Form.Label className="fw-semibold">Teléfono Celular</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, telefono: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="0990000000" />
                                 </Form.Group>
                             </Card>
                         </Col>
@@ -137,6 +158,7 @@ const Carrito = () => {
                                     <option value="Transferencia Bancaria">Transferencia Bancaria</option>
                                     <option value="DeUna!">DeUna! (QR)</option>
                                 </Form.Select>
+                                
                                 {metodoPago === 'DeUna!' && (
                                     <div className="text-center mb-4">
                                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EkiNaturePay" width="150" alt="QR" style={{ borderRadius: '10px' }} />
@@ -150,6 +172,20 @@ const Carrito = () => {
                                         <span style={{ fontSize: '0.9rem' }}>Cuenta: 220XXXXXXX</span>
                                     </Alert>
                                 )}
+
+                                <Form.Group className="mb-4">
+                                    <Form.Label className="fw-semibold">Nro. Comprobante / Referencia</Form.Label>
+                                    <Form.Control 
+                                        required 
+                                        onChange={e => setNumComprobante(e.target.value)} 
+                                        style={{ borderRadius: '10px', padding: '10px' }} 
+                                        placeholder="Ej. #123456789" 
+                                    />
+                                    <Form.Text className="text-muted">
+                                        Ingresa el número de referencia de tu transferencia.
+                                    </Form.Text>
+                                </Form.Group>
+
                                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px' }}>
                                     <div className="mb-3 pb-3" style={{ borderBottom: '1px solid #eee' }}>
                                         <div className="d-flex justify-content-between align-items-center mb-2" style={{ fontSize: '0.95rem' }}>
@@ -187,7 +223,7 @@ const Carrito = () => {
                     <Button as={Link} to="/" className="fw-bold px-5 py-3" size="lg" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Volver al Inicio</Button>
                 </Card>
             )}
-        </Container>
+            </Container>
         </div>
     );
 };
