@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Container, Row, Col, Card, Table, Button, Modal, Form, Tabs, Tab, Badge } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,14 @@ const Dashboard = () => {
     const [productoAEditar, setProductoAEditar] = useState({ id: '', nombre: '', descripcion: '', precio: '', stock: '' });
     const [imagenEdicion, setImagenEdicion] = useState(null);
 
+    const prevPedidosCount = useRef(0);
+    const prevMensajesCount = useRef(0);
+
+    const playNotificationSound = () => {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(e => console.log("Navegador bloqueó audio automático", e));
+    };
+
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 5000);
@@ -35,12 +43,26 @@ const Dashboard = () => {
 
         try {
             const resOrders = await axios.get('http://localhost:3000/api/pedidos');
+            if (prevPedidosCount.current !== 0 && resOrders.data.length > prevPedidosCount.current) {
+                playNotificationSound();
+            }
+            prevPedidosCount.current = resOrders.data.length;
             setPedidos(resOrders.data);
         } catch (error) {}
 
         try {
             const resMsgs = await axios.get('http://localhost:3000/api/contacto');
-            setMensajes(resMsgs.data);
+            if (prevMensajesCount.current !== 0 && resMsgs.data.length > prevMensajesCount.current) {
+                playNotificationSound();
+            }
+            prevMensajesCount.current = resMsgs.data.length;
+
+            // backend now returns `leido` (0/1) so convert to boolean
+            const mensajesFromServer = resMsgs.data.map(m => ({
+                ...m,
+                leido: !!m.leido
+            }));
+            setMensajes(mensajesFromServer);
         } catch (error) {}
 
         try {
@@ -114,10 +136,21 @@ const Dashboard = () => {
     };
 
     const handleUpdateStatus = async (id, nuevoEstado) => {
+        const estadoMayusculas = nuevoEstado.toString().toUpperCase();
         try {
-            await axios.put(`http://localhost:3000/api/pedidos/${id}/estado`, { estado: nuevoEstado });
+            await axios.put(`http://localhost:3000/api/pedidos/${id}/estado`, { estado: estadoMayusculas });
+
+            // update local copy using functional setState to avoid stale closures
+            setPedidos(prev => prev.map(p => 
+                p.id === id ? { ...p, estado: estadoMayusculas } : p
+            ));
+        } catch (err) {
+            console.error("Error al actualizar estado", err);
+            alert(err.response?.data?.error || "No se pudo actualizar el estado");
+        } finally {
+            // re-fetch to ensure server/client stay in sync
             fetchData();
-        } catch (err) {}
+        }
     };
 
     const handleDeleteOrder = async (id) => {
@@ -143,9 +176,17 @@ const Dashboard = () => {
     };
 
     const generateLabel = async (order) => {
-        await handleUpdateStatus(order.id, 'enviado');
+        try {
+            await handleUpdateStatus(order.id, 'ENVIADO');
+        } catch (err) {
+            // handleUpdateStatus already alerts, just prevent print
+            return;
+        }
+
+        const telefonoReal = order.cliente_telefono || order.telefono || "No especificado";
+        
         const printWindow = window.open('', '_blank');
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Pedido:${order.id}|Cliente:${order.cliente_nombre}|Telf:${order.telefono}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Pedido:${order.id}|Cliente:${order.cliente_nombre}|Telf:${telefonoReal}`;
 
         printWindow.document.write(`
             <html>
@@ -156,7 +197,7 @@ const Dashboard = () => {
                     <div style="text-align:left; font-size: 14px;">
                         <p><strong>DESTINATARIO:</strong> ${order.cliente_nombre}</p>
                         <p><strong>DIRECCIÓN:</strong> ${order.direccion}</p>
-                        <p><strong>TELÉFONO:</strong> ${order.telefono}</p>
+                        <p><strong>TELÉFONO:</strong> ${telefonoReal}</p>
                         <p><strong>ID PEDIDO:</strong> #${order.id}</p>
                     </div>
                     <div style="margin-top:20px;">
@@ -181,10 +222,23 @@ const Dashboard = () => {
         setShowModal(true);
     };
 
-    const handleViewMessage = (message) => {
+    const handleViewMessage = async (message) => {
+        try {
+            await axios.put(`http://localhost:3000/api/contacto/${message.id}/leido`);
+        } catch (err) {
+            console.error('Error marcando mensaje como leído', err);
+        }
+
+        setMensajes(mensajes.map(m => 
+            m.id === message.id ? { ...m, leido: true } : m
+        ));
+
         setSelectedMessage(message);
         setShowMessageModal(true);
     };
+
+    const pedidosPendientes = pedidos.filter(p => p.estado && p.estado.toUpperCase() === 'PENDIENTE').length;
+    const mensajesNoLeidos = mensajes.filter(m => !m.leido).length;
 
     return (
         <Container className="my-4">
@@ -211,7 +265,7 @@ const Dashboard = () => {
             </Row>
 
             <Tabs defaultActiveKey="inventario" className="mb-4 custom-tabs">
-                <Tab eventKey="pedidos" title="Pedidos Recientes">
+                <Tab eventKey="pedidos" title={<span>🛒 Pedidos Recientes {pedidosPendientes > 0 && <Badge bg="danger" className="ms-1">{pedidosPendientes}</Badge>}</span>}>
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
                             <thead className="table-light">
@@ -232,15 +286,19 @@ const Dashboard = () => {
                                         <td>
                                             <Form.Select 
                                                 size="sm" 
-                                                value={p.estado.toLowerCase()} 
-                                                onChange={(e) => handleUpdateStatus(p.id, e.target.value.toUpperCase())}
+                                                value={
+                                                    ['PENDIENTE','ENVIADO','CANCELADO'].includes(
+                                                        p.estado?.toString().toUpperCase()
+                                                    )
+                                                    ? p.estado.toString().toUpperCase()
+                                                    : 'PENDIENTE'
+                                                }
+                                                onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
                                                 style={{ borderRadius: '10px' }}
                                             >
-                                                <option value="pendiente">Pendiente</option>
-                                                <option value="pagado">Pagado</option>
-                                                <option value="enviado">Enviado</option>
-                                                <option value="despachado">Despachado</option>
-                                                <option value="cancelado">Cancelado</option>
+                                                <option value="PENDIENTE">Pendiente</option>
+                                                <option value="ENVIADO">Enviado</option>
+                                                <option value="CANCELADO">Cancelado</option>
                                             </Form.Select>
                                         </td>
                                         <td className="text-center">
@@ -315,7 +373,7 @@ const Dashboard = () => {
                     </Card>
                 </Tab>
 
-                <Tab eventKey="mensajes" title={`Mensajes (${mensajes.length})`}>
+                <Tab eventKey="mensajes" title={<span>✉️ Mensajes {mensajesNoLeidos > 0 && <Badge bg="primary" className="ms-1">{mensajesNoLeidos}</Badge>}</span>}>
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
                             <thead className="table-light">
@@ -328,7 +386,7 @@ const Dashboard = () => {
                             </thead>
                             <tbody>
                                 {mensajes.map(m => (
-                                    <tr key={m.id}>
+                                    <tr key={m.id} style={!m.leido ? { fontWeight: 'bold', backgroundColor: '#f8f9fa' } : {}}>
                                         <td>{new Date(m.fecha).toLocaleDateString()}</td>
                                         <td>{m.nombre}</td>
                                         <td className="text-muted">{m.asunto}</td>

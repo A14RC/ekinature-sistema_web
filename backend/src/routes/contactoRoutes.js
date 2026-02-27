@@ -4,6 +4,7 @@ const contactoController = require('../controllers/contactoController');
 
 router.post('/', contactoController.crearMensaje);
 router.get('/', contactoController.obtenerMensajes);
+router.put('/:id/leido', contactoController.marcarLeido);
 router.delete('/:id', contactoController.eliminarMensaje);
 
 module.exports = router;

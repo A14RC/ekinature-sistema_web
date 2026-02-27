@@ -38,6 +38,15 @@ const contactoController = {
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
+    },
+    marcarLeido: async (req, res) => {
+        try {
+            const { id } = req.params;
+            await db.query('UPDATE mensajes_contacto SET leido = 1 WHERE id = ?', [id]);
+            res.json({ mensaje: 'Mensaje marcado como leído' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
 };
 

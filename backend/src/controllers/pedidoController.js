@@ -15,7 +15,11 @@ const pedidoController = {
                 const [nuevoCliente] = await connection.query('INSERT INTO clientes (nombre, email, telefono, direccion) VALUES (?, ?, ?, ?)', [cliente.nombre, cliente.email, cliente.telefono, cliente.direccion]);
                 clienteId = nuevoCliente.insertId;
             }
-            const [nuevoPedido] = await connection.query('INSERT INTO pedidos (cliente_id, total, metodo_pago, num_comprobante) VALUES (?, ?, ?, ?)', [clienteId, pago.total, pago.metodo_pago, pago.num_comprobante]);
+            // set default estado to PENDIENTE when creating a new order
+            const [nuevoPedido] = await connection.query(
+                'INSERT INTO pedidos (cliente_id, total, metodo_pago, num_comprobante, estado) VALUES (?, ?, ?, ?, ?)',
+                [clienteId, pago.total, pago.metodo_pago, pago.num_comprobante, 'PENDIENTE']
+            );
             const pedidoId = nuevoPedido.insertId;
             for (const item of productos) {
                 const [productoBd] = await connection.query('SELECT stock, precio FROM productos WHERE id = ?', [item.id]);
@@ -63,10 +67,18 @@ const pedidoController = {
     actualizarEstadoPedido: async (req, res) => {
         try {
             const { id } = req.params;
-            const { estado } = req.body;
+            let { estado } = req.body;
+            estado = estado.toString().toUpperCase();
+            const permisibles = ['PENDIENTE', 'ENVIADO', 'CANCELADO'];
+            if (!permisibles.includes(estado)) {
+                console.log(`Intento de actualizar pedido ${id} con estado inválido: ${estado}`);
+                return res.status(400).json({ error: 'Estado no válido. Solo permitidos: Pendiente, Enviado, Cancelado.' });
+            }
+            console.log(`Actualizando pedido ${id} a estado ${estado}`);
             await db.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, id]);
-            res.json({ mensaje: 'Estado del pedido actualizado' });
+            res.json({ mensaje: 'Estado del pedido actualizado', estado });
         } catch (error) {
+            console.error('Error actualizando estado pedido:', error);
             res.status(500).json({ error: error.message });
         }
     },
