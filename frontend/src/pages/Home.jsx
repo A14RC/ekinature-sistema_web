@@ -4,11 +4,6 @@ import { Link } from 'react-router-dom';
 const Home = () => {
     return (
         <div style={{ position: 'relative', backgroundColor: '#fff' }}>
-            {/* Acceso Administrativo Oculto */}
-            <Link to="/login" style={{ position: 'absolute', top: '15px', right: '15px', opacity: 0.1, zIndex: 10 }}>
-                <img src="https://cdn-icons-png.flaticon.com/512/892/892926.png" alt="admin" width="20" />
-            </Link>
-
             {/* SECCIÓN 1: Hero Impactante */}
             <div style={{ 
                 background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%)',
@@ -149,16 +144,16 @@ const Home = () => {
             </div>
 
             <div className="text-center mt-5 mb-5">
-    <Button 
-        as={Link} 
-        to="/productos" 
-        size="lg" 
-        className="fw-bold px-5 py-3 shadow-lg" 
-        style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '15px', fontSize: '1.2rem' }}
-    >
-        🛒 ADQUIRIR EKINATURE GEL AHORA
-    </Button>
-</div>
+                <Button 
+                    as={Link} 
+                    to="/productos" 
+                    size="lg" 
+                    className="fw-bold px-5 py-3 shadow-lg" 
+                    style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '15px', fontSize: '1.2rem' }}
+                >
+                    🛒 ADQUIRIR EKINATURE GEL AHORA
+                </Button>
+            </div>
 
             {/* SECCIÓN 4: Cómo funciona */}
             <Container className="py-5">
@@ -303,6 +298,19 @@ const Home = () => {
                         </Button>
                     </div>
                 </Container>
+            </div>
+
+            {/* Botón Visible de Ingreso Staff */}
+            <div className="text-center mt-5 mb-5">
+                <Button 
+                    as={Link} 
+                    to="/login" 
+                    variant="link" 
+                    className="text-muted text-decoration-none fw-bold"
+                    style={{ fontSize: '1rem' }}
+                >
+                    🔒 Ingreso Staff / Administrador
+                </Button>
             </div>
 
             <style>{`
