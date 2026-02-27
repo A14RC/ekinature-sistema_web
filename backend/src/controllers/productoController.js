@@ -56,11 +56,14 @@ const productoController = {
     eliminarProducto: async (req, res) => {
         try {
             const { id } = req.params;
+            const usuarioId = req.usuario.id;
+            const usuarioNombre = req.usuario.usuario || 'Sistema';
+            
             const [uso] = await db.query('SELECT COUNT(*) as count FROM detalles_pedido WHERE producto_id = ?', [id]);
             if (uso[0].count > 0) {
                 return res.status(400).json({ error: 'No se puede eliminar: El producto está en pedidos existentes. Edite el stock a 0.' });
             }
-            const [productoActual] = await db.query('SELECT imagen_url FROM productos WHERE id = ?', [id]);
+            const [productoActual] = await db.query('SELECT imagen_url, nombre FROM productos WHERE id = ?', [id]);
             if (productoActual.length === 0) return res.status(404).json({ error: 'Producto no encontrado' });
             if (productoActual[0].imagen_url) {
                 const rutaImagenAnterior = path.join(__dirname, '../../', productoActual[0].imagen_url);
@@ -69,6 +72,9 @@ const productoController = {
                 }
             }
             await db.query('DELETE FROM productos WHERE id = ?', [id]);
+            
+            await registrarAccion(usuarioId, usuarioNombre, 'ELIMINAR', 'productos', id, { nombre_producto: productoActual[0].nombre });
+            
             res.json({ mensaje: 'Producto eliminado exitosamente' });
         } catch (error) {
             res.status(500).json({ error: error.message });

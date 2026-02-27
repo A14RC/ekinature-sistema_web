@@ -17,8 +17,9 @@ const verificarToken = (req, res, next) => {
 };
 
 const soloAdmin = (req, res, next) => {
-    if (req.usuario.rol !== 'ADMINISTRADOR') {
-        return res.status(403).json({ mensaje: 'Acceso denegado. Privilegios insuficientes.' });
+    const rolUsuario = req.usuario.rol?.toUpperCase();
+    if (rolUsuario !== 'ADMINISTRADOR' && rolUsuario !== 'ADMIN') {
+        return res.status(403).json({ mensaje: 'Acceso denegado. Solo administradores pueden realizar esta acción.' });
     }
     next();
 };

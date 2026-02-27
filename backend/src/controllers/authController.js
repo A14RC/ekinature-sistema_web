@@ -31,15 +31,16 @@ const authController = {
 
     registrarOperador: async (req, res) => {
         try {
-            const { usuario, password } = req.body;
+            const { usuario, password, rol } = req.body;
+            const rolFinal = rol || 'OPERADOR';
             const passwordHash = await bcrypt.hash(password, 10);
 
             await db.query(
                 'INSERT INTO usuarios (usuario, password_hash, rol) VALUES (?, ?, ?)',
-                [usuario, passwordHash, 'OPERADOR_LOGISTICO']
+                [usuario, passwordHash, rolFinal]
             );
             
-            res.status(201).json({ mensaje: 'Operador registrado exitosamente' });
+            res.status(201).json({ mensaje: 'Responsable registrado exitosamente' });
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
                 return res.status(400).json({ mensaje: 'El nombre de usuario ya existe' });
@@ -51,8 +52,7 @@ const authController = {
     obtenerOperadores: async (req, res) => {
         try {
             const [operadores] = await db.query(
-                'SELECT id, usuario, rol, created_at FROM usuarios WHERE rol = ?', 
-                ['OPERADOR_LOGISTICO']
+                'SELECT id, usuario, rol, created_at FROM usuarios WHERE usuario != "admin_eki"'
             );
             res.json(operadores);
         } catch (error) {
@@ -63,8 +63,8 @@ const authController = {
     eliminarOperador: async (req, res) => {
         try {
             const { id } = req.params;
-            await db.query('DELETE FROM usuarios WHERE id = ? AND rol = ?', [id, 'OPERADOR_LOGISTICO']);
-            res.json({ mensaje: 'Operador eliminado exitosamente' });
+            await db.query('DELETE FROM usuarios WHERE id = ? AND usuario != "admin_eki"', [id]);
+            res.json({ mensaje: 'Usuario eliminado exitosamente' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

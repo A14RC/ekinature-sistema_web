@@ -34,6 +34,15 @@ const actualizar = async () => {
         process.exit(1);
     }
 
+    // ensure usuarios.rol can hold ADMINISTRADOR and OPERADOR
+    try {
+        await db.query('ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(20) DEFAULT "OPERADOR"');
+        console.log('Columna "rol" en usuarios ajustada a VARCHAR(20).');
+    } catch (error) {
+        console.error('Error al modificar columna rol en usuarios:', error.message);
+        process.exit(1);
+    }
+
     process.exit(0);
 };
 
