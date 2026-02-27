@@ -148,6 +148,18 @@ const Home = () => {
                 </Container>
             </div>
 
+            <div className="text-center mt-5 mb-5">
+    <Button 
+        as={Link} 
+        to="/productos" 
+        size="lg" 
+        className="fw-bold px-5 py-3 shadow-lg" 
+        style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '15px', fontSize: '1.2rem' }}
+    >
+        🛒 ADQUIRIR EKINATURE GEL AHORA
+    </Button>
+</div>
+
             {/* SECCIÓN 4: Cómo funciona */}
             <Container className="py-5">
                 <h2 className="fw-bold text-center mb-5" style={{ color: '#1b5e20', fontSize: '2rem' }}>
