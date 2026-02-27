@@ -1,71 +1,116 @@
 const db = require('../config/db');
-const { enviarConfirmacionPedido } = require('../config/mailer');
 
-const crearPedido = async (req, res) => {
-    try {
-        const { cliente_nombre, cliente_cedula, direccion, telefono, subtotal, iva, total, productos, metodo_pago, email_cliente } = req.body;
-        
-        const queryPedido = "INSERT INTO pedidos (cliente_nombre, cliente_cedula, direccion, telefono, subtotal, iva, total, metodo_pago, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')";
-        const [result] = await db.query(queryPedido, [cliente_nombre, cliente_cedula, direccion, telefono, subtotal, iva, total, metodo_pago]);
-        
-        const pedidoId = result.insertId;
-        const queryDetalle = "INSERT INTO detalle_pedidos (pedido_id, producto_id, cantidad, precio_unitario) VALUES ?";
-        const valoresDetalle = productos.map(p => [pedidoId, p.id, p.cantidad, p.precio]);
-        
-        await db.query(queryDetalle, [valoresDetalle]);
-        enviarConfirmacionPedido(email_cliente, { metodo_pago, total });
-        
-        res.json({ message: "Éxito", id: pedidoId });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+const pedidoController = {
+    crearPedido: async (req, res) => {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const { cliente, productos, pago } = req.body;
+
+            let clienteId;
+            const [clienteExistente] = await connection.query(
+                'SELECT id FROM clientes WHERE email = ?',
+                [cliente.email]
+            );
+
+            if (clienteExistente.length > 0) {
+                clienteId = clienteExistente[0].id;
+            } else {
+                const [nuevoCliente] = await connection.query(
+                    'INSERT INTO clientes (nombre, email, telefono, direccion) VALUES (?, ?, ?, ?)',
+                    [cliente.nombre, cliente.email, cliente.telefono, cliente.direccion]
+                );
+                clienteId = nuevoCliente.insertId;
+            }
+
+            const [nuevoPedido] = await connection.query(
+                'INSERT INTO pedidos (cliente_id, total, metodo_pago, num_comprobante) VALUES (?, ?, ?, ?)',
+                [clienteId, pago.total, pago.metodo_pago, pago.num_comprobante]
+            );
+            const pedidoId = nuevoPedido.insertId;
+
+            for (const item of productos) {
+                const [productoBd] = await connection.query(
+                    'SELECT stock, precio FROM productos WHERE id = ?',
+                    [item.id]
+                );
+
+                if (productoBd.length === 0 || productoBd[0].stock < item.cantidad) {
+                    throw new Error(`Stock insuficiente para el producto ID: ${item.id}`);
+                }
+
+                await connection.query(
+                    'UPDATE productos SET stock = stock - ? WHERE id = ?',
+                    [item.cantidad, item.id]
+                );
+
+                await connection.query(
+                    'INSERT INTO detalles_pedido (pedido_id, producto_id, cantidad, precio_unitario) VALUES (?, ?, ?, ?)',
+                    [pedidoId, item.id, item.cantidad, productoBd[0].precio]
+                );
+            }
+
+            await connection.commit();
+            res.status(201).json({ mensaje: 'Pedido creado exitosamente', pedidoId });
+        } catch (error) {
+            await connection.rollback();
+            res.status(500).json({ error: error.message });
+        } finally {
+            connection.release();
+        }
+    },
+
+    obtenerPedidos: async (req, res) => {
+        try {
+            const [pedidos] = await db.query(`
+                SELECT p.id, p.total, p.metodo_pago, p.num_comprobante, p.estado, p.fecha, 
+                       c.nombre AS cliente_nombre, c.email AS cliente_email, c.telefono AS cliente_telefono
+                FROM pedidos p
+                JOIN clientes c ON p.cliente_id = c.id
+                ORDER BY p.fecha DESC
+            `);
+            res.json(pedidos);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    obtenerPedidoPorId: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const [pedido] = await db.query(`
+                SELECT p.*, c.nombre AS cliente_nombre, c.email, c.telefono, c.direccion
+                FROM pedidos p
+                JOIN clientes c ON p.cliente_id = c.id
+                WHERE p.id = ?
+            `, [id]);
+
+            if (pedido.length === 0) return res.status(404).json({ mensaje: 'Pedido no encontrado' });
+
+            const [detalles] = await db.query(`
+                SELECT d.cantidad, d.precio_unitario, pr.nombre
+                FROM detalles_pedido d
+                JOIN productos pr ON d.producto_id = pr.id
+                WHERE d.pedido_id = ?
+            `, [id]);
+
+            res.json({ ...pedido[0], detalles });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    actualizarEstadoPedido: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { estado } = req.body;
+            await db.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, id]);
+            res.json({ mensaje: 'Estado del pedido actualizado' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
 };
 
-const obtenerPedidos = async (req, res) => {
-    try {
-        const [results] = await db.query("SELECT * FROM pedidos ORDER BY created_at DESC");
-        res.json(results);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-const obtenerKpisHoy = async (req, res) => {
-    try {
-        const [results] = await db.query("SELECT COUNT(*) as ventasHoy, IFNULL(SUM(total), 0) as ingresosHoy FROM pedidos WHERE DATE(created_at) = CURDATE()");
-        res.json(results[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-const actualizarEstadoPedido = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { estado } = req.body;
-        await db.query("UPDATE pedidos SET estado = ? WHERE id = ?", [estado, id]);
-        res.json({ message: "Actualizado" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-const eliminarPedido = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await db.query("DELETE FROM pedidos WHERE id = ?", [id]);
-        res.json({ message: "Eliminado" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-module.exports = {
-    crearPedido,
-    obtenerPedidos,
-    obtenerKpisHoy,
-    actualizarEstadoPedido,
-    eliminarPedido
-};
-
-
+module.exports = pedidoController;

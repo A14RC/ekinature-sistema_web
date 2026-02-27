@@ -1,39 +1,29 @@
 const db = require('./src/config/db');
 const bcrypt = require('bcryptjs');
 
-async function crearAdmin() {
-    const connection = await db.getConnection();
-    
+const crearAdminJefe = async () => {
+    const usuario = 'admin_eki';
+    const passwordClaro = 'EkiNature2026'; 
+    const rol = 'ADMINISTRADOR';
+
     try {
-        // DATOS DE TU USUARIO ADMIN
-        const nombre = 'Admin Principal';
-        const email = 'admin@ekinature.com';
-        const passwordPlana = 'admin123'; // CONTRASEÑA administrador
+        const passwordHash = await bcrypt.hash(passwordClaro, 10);
 
-        // 1. Encriptar la contraseña
-        const salt = await bcrypt.genSalt(10);
-        const passwordEncriptada = await bcrypt.hash(passwordPlana, salt);
-
-        // 2. Insertar en la base de datos
-        await connection.query(
-            'INSERT INTO administradores (nombre, email, password) VALUES (?, ?, ?)',
-            [nombre, email, passwordEncriptada]
+        await db.query(
+            'INSERT INTO usuarios (usuario, password_hash, rol) VALUES (?, ?, ?)',
+            [usuario, passwordHash, rol]
         );
 
-        console.log('✅ Usuario Administrador creado con éxito.');
-        console.log(`📧 Email: ${email}`);
-        console.log(`🔑 Password: ${passwordPlana}`);
-
+        console.log('Administrador Jefe creado exitosamente.');
+        process.exit(0);
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
-            console.log('⚠️ El administrador ya existe. No se hicieron cambios.');
+            console.error('El usuario ya existe en la base de datos.');
         } else {
-            console.error('❌ Error al crear admin:', error);
+            console.error('Error al crear el administrador:', error.message);
         }
-    } finally {
-        connection.release(); 
-        process.exit(); 
+        process.exit(1);
     }
-}
+};
 
-crearAdmin();
+crearAdminJefe();
