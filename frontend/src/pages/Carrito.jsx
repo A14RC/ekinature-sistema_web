@@ -129,9 +129,9 @@ const Carrito = () => {
                     <Row>
                         <Col md={7}>
                             <Card className="p-5 shadow-lg border-0 mb-4" style={{ borderRadius: '25px', backgroundColor: 'white' }}>
-                                <h4 className="fw-bold mb-3" style={{ color: '#1b5e20' }}>📍 Detalles de Despacho</h4>
+                                <h4 className="fw-bold mb-3" style={{ color: '#1b5e20' }}>📍 Detalles de Envío</h4>
                                 <Alert variant="info" style={{ borderRadius: '10px' }}>
-                                    <strong>Importante:</strong> Por favor, ingresa tus datos reales y precisos. Esta información será utilizada exclusivamente por nuestro equipo de logística para coordinar el envío y asegurar la entrega correcta de tu pedido.
+                                    <strong> ⚠️Importante⚠️:</strong> Por favor, ingresa tus datos reales y precisos. Esta información será utilizada exclusivamente por nuestro equipo de logística para coordinar el envío y asegurar la entrega correcta de tu pedido.
                                 </Alert>
                                 <Form.Group className="mb-3 mt-4">
                                     <Form.Label className="fw-semibold">Nombre Completo</Form.Label>
@@ -168,8 +168,10 @@ const Carrito = () => {
                                 {metodoPago === 'Transferencia Bancaria' && (
                                     <Alert variant="success" className="mb-4" style={{ borderRadius: '10px' }}>
                                         <b>Banco Pichincha</b><br/>
-                                        <span style={{ fontSize: '0.9rem' }}>Titular: Andrés Romero</span><br/>
-                                        <span style={{ fontSize: '0.9rem' }}>Cuenta: 220XXXXXXX</span>
+                                        <span style={{ fontSize: '0.9rem' }}>Titular: EkiNature</span><br/>
+                                        <span style={{ fontSize: '0.9rem' }}>Número de Cuenta: 2202589745</span><br/>
+                                        <span style={{ fontSize: '0.9rem' }}>Tipo: Cuenta Corriente</span><br/>
+                                        <span style={{ fontSize: '0.9rem' }}>RUC: 1792002589001</span>
                                     </Alert>
                                 )}
 
@@ -179,10 +181,10 @@ const Carrito = () => {
                                         required 
                                         onChange={e => setNumComprobante(e.target.value)} 
                                         style={{ borderRadius: '10px', padding: '10px' }} 
-                                        placeholder="Ej. #123456789" 
+                                        placeholder="Ejemplo: 34722007" 
                                     />
-                                    <Form.Text className="text-muted">
-                                        Ingresa el número de referencia de tu transferencia.
+                                    <Form.Text className="d-block mt-2" style={{ fontWeight: '700', fontSize: '0.9rem' }}>
+                                        ⚠️ IMPORTANTE⚠️: Coloca aquí el número de comprobante que aparece en tu recibo de transferencia o DeUna, esto ayudará a verificar tu pago.
                                     </Form.Text>
                                 </Form.Group>
 
