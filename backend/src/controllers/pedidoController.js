@@ -21,20 +21,41 @@ const pedidoController = {
                 [clienteId, pago.total, pago.metodo_pago, pago.num_comprobante, 'PENDIENTE']
             );
             const pedidoId = nuevoPedido.insertId;
+            
+            // collect product details for email
+            const productosConDetalles = [];
             for (const item of productos) {
-                const [productoBd] = await connection.query('SELECT stock, precio FROM productos WHERE id = ?', [item.id]);
+                const [productoBd] = await connection.query('SELECT nombre, stock, precio FROM productos WHERE id = ?', [item.id]);
                 if (productoBd.length === 0 || productoBd[0].stock < item.cantidad) {
                     throw new Error(`Stock insuficiente para el producto ID: ${item.id}`);
                 }
                 await connection.query('UPDATE productos SET stock = stock - ? WHERE id = ?', [item.cantidad, item.id]);
                 await connection.query('INSERT INTO detalles_pedido (pedido_id, producto_id, cantidad, precio_unitario) VALUES (?, ?, ?, ?)', [pedidoId, item.id, item.cantidad, productoBd[0].precio]);
+                
+                productosConDetalles.push({
+                    nombre: productoBd[0].nombre,
+                    cantidad: item.cantidad,
+                    precio: productoBd[0].precio
+                });
             }
             await connection.commit();
 
             try {
-                mailer.enviarConfirmacionPedido(cliente.email, { total: pago.total, metodo_pago: pago.metodo_pago });
+                const datosParaEmail = {
+                    pedidoId,
+                    cliente_nombre: cliente.nombre,
+                    cliente_email: cliente.email,
+                    cliente_telefono: cliente.telefono,
+                    cliente_direccion: cliente.direccion,
+                    total: pago.total,
+                    metodo_pago: pago.metodo_pago,
+                    productos: productosConDetalles
+                };
+                
+                mailer.enviarConfirmacionPedido(cliente.email, datosParaEmail);
+                mailer.enviarAlertaAdmin(datosParaEmail);
             } catch (mailError) {
-                console.log('Error silenciado al enviar correo de pedido:', mailError);
+                console.log('Error al enviar correos de pedido:', mailError);
             }
 
             res.status(201).json({ mensaje: 'Pedido creado exitosamente', pedidoId });
