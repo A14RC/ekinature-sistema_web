@@ -1,26 +1,74 @@
+const db = require('../config/db');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const verificarToken = (req, res, next) => {
-    const tokenHeader = req.header('Authorization');
-    if (!tokenHeader) {
-        return res.status(403).json({ mensaje: 'Acceso denegado. Token no proporcionado.' });
-    }
+const authController = {
+    login: async (req, res) => {
+        try {
+            const { usuario, password } = req.body;
+            const [users] = await db.query('SELECT * FROM usuarios WHERE usuario = ?', [usuario]);
+            
+            if (users.length === 0) {
+                return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+            }
+            
+            const validPassword = await bcrypt.compare(password, users[0].password_hash);
+            if (!validPassword) {
+                return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+            }
 
-    try {
-        const token = tokenHeader.replace('Bearer ', '');
-        const verificado = jwt.verify(token, process.env.JWT_SECRET || 'secreto_desarrollo');
-        req.usuario = verificado;
-        next();
-    } catch (error) {
-        res.status(401).json({ mensaje: 'Token inválido o expirado.' });
+            const token = jwt.sign(
+                { id: users[0].id, rol: users[0].rol }, 
+                process.env.JWT_SECRET || 'secreto_desarrollo', 
+                { expiresIn: '8h' }
+            );
+
+            res.json({ token, rol: users[0].rol, usuario: users[0].usuario });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    registrarOperador: async (req, res) => {
+        try {
+            const { usuario, password } = req.body;
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            await db.query(
+                'INSERT INTO usuarios (usuario, password_hash, rol) VALUES (?, ?, ?)',
+                [usuario, passwordHash, 'OPERADOR_LOGISTICO']
+            );
+            
+            res.status(201).json({ mensaje: 'Operador registrado exitosamente' });
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({ mensaje: 'El nombre de usuario ya existe' });
+            }
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    obtenerOperadores: async (req, res) => {
+        try {
+            const [operadores] = await db.query(
+                'SELECT id, usuario, rol, created_at FROM usuarios WHERE rol = ?', 
+                ['OPERADOR_LOGISTICO']
+            );
+            res.json(operadores);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    eliminarOperador: async (req, res) => {
+        try {
+            const { id } = req.params;
+            await db.query('DELETE FROM usuarios WHERE id = ? AND rol = ?', [id, 'OPERADOR_LOGISTICO']);
+            res.json({ mensaje: 'Operador eliminado exitosamente' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
 };
 
-const soloAdmin = (req, res, next) => {
-    if (req.usuario.rol !== 'ADMINISTRADOR') {
-        return res.status(403).json({ mensaje: 'Acceso denegado. Privilegios insuficientes.' });
-    }
-    next();
-};
-
-module.exports = { verificarToken, soloAdmin };
+module.exports = authController;
