@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import Navigation from './components/Navbar';
@@ -10,7 +11,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/admin/Dashboard';
 import authService from './services/authService';
 
-// Componente de ruta protegida
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = authService.isAuthenticated();
   return isAuthenticated ? children : <Navigate to="/login" replace />;

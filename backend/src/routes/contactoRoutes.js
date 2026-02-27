@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const contactoController = require('../controllers/contactoController');
 
-router.post('/', contactoController.registrarMensaje);
+router.post('/', contactoController.crearMensaje);
 router.get('/', contactoController.obtenerMensajes);
 router.delete('/:id', contactoController.eliminarMensaje);
 

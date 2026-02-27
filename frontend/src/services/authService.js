@@ -1,37 +1,23 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000/api/auth';
-
 const authService = {
-  login: async (email, password) => {
-    try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
-      
-      // Si la respuesta tiene un token, guarda en el navegador
-      if (response.data.token) {
-        localStorage.setItem('adminToken', response.data.token);
-        localStorage.setItem('adminUser', JSON.stringify(response.data.usuario));
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error("Error en login:", error.response?.data?.error || error.message);
-      throw error; // Lanzamos el error para que la pantalla lo muestre
+    isAuthenticated: () => {
+        const token = localStorage.getItem('token');
+        if (!token) return false;
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.exp > Date.now() / 1000;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    getRol: () => localStorage.getItem('rol'),
+    
+    logout: () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('rol');
+        localStorage.removeItem('usuario');
     }
-  },
-
-  logout: () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
-  },
-
-  getCurrentUser: () => {
-    return JSON.parse(localStorage.getItem('adminUser'));
-  },
-  
-  isAuthenticated: () => {
-      return !!localStorage.getItem('adminToken');
-  }
 };
 
 export default authService;

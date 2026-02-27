@@ -1,37 +1,32 @@
 const db = require('../config/db');
-const { enviarAlertaContacto } = require('../config/mailer');
 
-const registrarMensaje = async (req, res) => {
-    try {
-        const { nombre, email, asunto, mensaje } = req.body;
-        const query = "INSERT INTO mensajes_contacto (nombre, email, asunto, mensaje) VALUES (?, ?, ?, ?)";
-        await db.query(query, [nombre, email, asunto, mensaje]);
-        
-        enviarAlertaContacto({ nombre, email, asunto, mensaje });
-
-        res.json({ message: "Mensaje enviado y notificado" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+const contactoController = {
+    crearMensaje: async (req, res) => {
+        try {
+            const { nombre, email, telefono, asunto, mensaje } = req.body;
+            await db.query('INSERT INTO contactos (nombre, email, telefono, asunto, mensaje) VALUES (?, ?, ?, ?, ?)', [nombre, email, telefono, asunto, mensaje]);
+            res.status(201).json({ mensaje: 'Mensaje enviado exitosamente' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    obtenerMensajes: async (req, res) => {
+        try {
+            const [mensajes] = await db.query('SELECT * FROM contactos ORDER BY fecha DESC');
+            res.json(mensajes);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+    eliminarMensaje: async (req, res) => {
+        try {
+            const { id } = req.params;
+            await db.query('DELETE FROM contactos WHERE id = ?', [id]);
+            res.json({ mensaje: 'Mensaje eliminado' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
 };
 
-const obtenerMensajes = async (req, res) => {
-    try {
-        const [results] = await db.query("SELECT * FROM mensajes_contacto ORDER BY fecha DESC");
-        res.json(results);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-const eliminarMensaje = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await db.query("DELETE FROM mensajes_contacto WHERE id = ?", [id]);
-        res.json({ message: "Mensaje eliminado" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-module.exports = { registrarMensaje, obtenerMensajes, eliminarMensaje };
+module.exports = contactoController;

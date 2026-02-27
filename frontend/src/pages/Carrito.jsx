@@ -8,10 +8,7 @@ const Carrito = () => {
     const { cart, removeFromCart, clearCart } = useCart();
     const [step, setStep] = useState(1);
     const [metodoPago, setMetodoPago] = useState('Transferencia Bancaria');
-    // Eliminada la cédula según requerimiento
-    const [datos, setDatos] = useState({ nombre: '', direccion: '', telefono: '', email: '' });
-    // Nuevo estado para el número de comprobante
-    const [numComprobante, setNumComprobante] = useState('');
+    const [datos, setDatos] = useState({ nombre: '', cedula: '', direccion: '', telefono: '', email: '' });
 
     // CÁLCULO PROFESIONAL DEL CARRITO
     const subtotal = cart.reduce((acc, item) => {
@@ -27,24 +24,18 @@ const Carrito = () => {
 
     const handleFinalizar = async (e) => {
         e.preventDefault();
-        
-        // Nueva estructura de objeto para la transacción atómica del Backend
         const pedido = {
-            cliente: {
-                nombre: datos.nombre,
-                email: datos.email,
-                telefono: datos.telefono,
-                direccion: datos.direccion
-            },
-            pago: {
-                total: totalCompra.toFixed(2),
-                metodo_pago: metodoPago,
-                num_comprobante: numComprobante || 'Pago en efectivo/pendiente'
-            },
-            productos: cart.map(item => ({
-                id: item.id,
-                cantidad: item.cantidad
-            }))
+            cliente_nombre: datos.nombre,
+            cliente_cedula: datos.cedula,
+            direccion: datos.direccion,
+            telefono: datos.telefono,
+            email_cliente: datos.email,
+            subtotal: subtotal.toFixed(2),
+            envio: envio.toFixed(2),
+            iva: iva.toFixed(2),
+            total: totalCompra.toFixed(2),
+            productos: cart,
+            metodo_pago: metodoPago
         };
 
         try {
@@ -53,8 +44,7 @@ const Carrito = () => {
             clearCart();
             setStep(3);
         } catch (error) {
-            console.error(error);
-            alert(error.response?.data?.error || 'Error en el servidor. Revise la consola.');
+            alert('Error en el servidor. Revise la consola.');
         }
     };
 
@@ -123,6 +113,10 @@ const Carrito = () => {
                                     <Form.Control required onChange={e => setDatos({...datos, nombre: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="Juan Pérez" />
                                 </Form.Group>
                                 <Form.Group className="mb-3">
+                                    <Form.Label className="fw-semibold">Cédula/RUC</Form.Label>
+                                    <Form.Control required onChange={e => setDatos({...datos, cedula: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="1234567890" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
                                     <Form.Label className="fw-semibold">Email</Form.Label>
                                     <Form.Control type="email" required onChange={e => setDatos({...datos, email: e.target.value})} style={{ borderRadius: '10px', padding: '10px' }} placeholder="tu@email.com" />
                                 </Form.Group>
@@ -143,7 +137,6 @@ const Carrito = () => {
                                     <option value="Transferencia Bancaria">Transferencia Bancaria</option>
                                     <option value="DeUna!">DeUna! (QR)</option>
                                 </Form.Select>
-                                
                                 {metodoPago === 'DeUna!' && (
                                     <div className="text-center mb-4">
                                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EkiNaturePay" width="150" alt="QR" style={{ borderRadius: '10px' }} />
@@ -157,21 +150,6 @@ const Carrito = () => {
                                         <span style={{ fontSize: '0.9rem' }}>Cuenta: 220XXXXXXX</span>
                                     </Alert>
                                 )}
-
-                                {/* NUEVO CAMPO: NÚMERO DE COMPROBANTE */}
-                                <Form.Group className="mb-4">
-                                    <Form.Label className="fw-semibold">Número de Comprobante / Referencia</Form.Label>
-                                    <Form.Control 
-                                        required 
-                                        onChange={e => setNumComprobante(e.target.value)} 
-                                        style={{ borderRadius: '10px', padding: '10px' }} 
-                                        placeholder="Ej. #123456789" 
-                                    />
-                                    <Form.Text className="text-muted">
-                                        Ingresa el número de referencia de tu transferencia o pago DeUna!.
-                                    </Form.Text>
-                                </Form.Group>
-
                                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px' }}>
                                     <div className="mb-3 pb-3" style={{ borderBottom: '1px solid #eee' }}>
                                         <div className="d-flex justify-content-between align-items-center mb-2" style={{ fontSize: '0.95rem' }}>
@@ -209,7 +187,7 @@ const Carrito = () => {
                     <Button as={Link} to="/" className="fw-bold px-5 py-3" size="lg" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Volver al Inicio</Button>
                 </Card>
             )}
-            </Container>
+        </Container>
         </div>
     );
 };
