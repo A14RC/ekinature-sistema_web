@@ -9,28 +9,107 @@ const Dashboard = () => {
     const [kpis, setKpis] = useState({ ventasHoy: 0, ingresosHoy: 0 });
     const [showModal, setShowModal] = useState(false);
     const [showMessageModal, setShowMessageModal] = useState(false);
+    const [showEditProductModal, setShowEditProductModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [selectedMessage, setSelectedMessage] = useState(null);
     const navigate = useNavigate();
 
+    const [productos, setProductos] = useState([]);
+    const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', descripcion: '', precio: '', stock: '' });
+    const [imagen, setImagen] = useState(null);
+
+    const [productoAEditar, setProductoAEditar] = useState({ id: '', nombre: '', descripcion: '', precio: '', stock: '' });
+    const [imagenEdicion, setImagenEdicion] = useState(null);
+
     useEffect(() => {
         fetchData();
-        // Intervalo de actualización automática cada 5 segundos
         const interval = setInterval(fetchData, 5000);
         return () => clearInterval(interval);
     }, []);
 
     const fetchData = async () => {
         try {
+            const resProd = await axios.get('http://localhost:3000/api/productos');
+            setProductos(resProd.data);
+        } catch (error) {}
+
+        try {
             const resOrders = await axios.get('http://localhost:3000/api/pedidos');
-            const resKpis = await axios.get('http://localhost:3000/api/pedidos/kpis/hoy');
-            const resMsgs = await axios.get('http://localhost:3000/api/contacto');
-            
             setPedidos(resOrders.data);
-            setKpis(resKpis.data);
+        } catch (error) {}
+
+        try {
+            const resMsgs = await axios.get('http://localhost:3000/api/contacto');
             setMensajes(resMsgs.data);
-        } catch (error) {
-            console.error("Error de carga de datos en el Dashboard");
+        } catch (error) {}
+
+        try {
+            const resKpis = await axios.get('http://localhost:3000/api/pedidos/kpis/hoy');
+            setKpis(resKpis.data);
+        } catch (error) {}
+    };
+
+    const handleCrearProducto = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('nombre', nuevoProducto.nombre);
+        formData.append('descripcion', nuevoProducto.descripcion);
+        formData.append('precio', nuevoProducto.precio);
+        formData.append('stock', nuevoProducto.stock);
+        if (imagen) formData.append('imagen', imagen);
+
+        try {
+            await axios.post('http://localhost:3000/api/productos', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setNuevoProducto({ nombre: '', descripcion: '', precio: '', stock: '' });
+            setImagen(null);
+            fetchData();
+        } catch (err) {
+            alert("Error al crear el producto");
+        }
+    };
+
+    const handleEditClick = (producto) => {
+        setProductoAEditar({
+            id: producto.id,
+            nombre: producto.nombre,
+            descripcion: producto.descripcion || '',
+            precio: producto.precio,
+            stock: producto.stock
+        });
+        setImagenEdicion(null);
+        setShowEditProductModal(true);
+    };
+
+    const handleActualizarProducto = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('nombre', productoAEditar.nombre);
+        formData.append('descripcion', productoAEditar.descripcion);
+        formData.append('precio', productoAEditar.precio);
+        formData.append('stock', productoAEditar.stock);
+        if (imagenEdicion) formData.append('imagen', imagenEdicion);
+
+        try {
+            await axios.put(`http://localhost:3000/api/productos/${productoAEditar.id}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setShowEditProductModal(false);
+            fetchData();
+        } catch (err) {
+            alert("Error al actualizar el producto");
+        }
+    };
+
+    const eliminarProducto = async (id) => {
+        if (window.confirm("¿Estás seguro de eliminar este producto?")) {
+            try {
+                await axios.delete(`http://localhost:3000/api/productos/${id}`);
+                fetchData();
+            } catch (err) {
+                alert(err.response?.data?.error || "Error al eliminar el producto");
+            }
         }
     };
 
@@ -38,9 +117,7 @@ const Dashboard = () => {
         try {
             await axios.put(`http://localhost:3000/api/pedidos/${id}/estado`, { estado: nuevoEstado });
             fetchData();
-        } catch (err) {
-            alert("Error al actualizar el estado");
-        }
+        } catch (err) {}
     };
 
     const handleDeleteOrder = async (id) => {
@@ -66,9 +143,7 @@ const Dashboard = () => {
     };
 
     const generateLabel = async (order) => {
-        // Actualiza el estado a enviado automáticamente
         await handleUpdateStatus(order.id, 'enviado');
-
         const printWindow = window.open('', '_blank');
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Pedido:${order.id}|Cliente:${order.cliente_nombre}|Telf:${order.telefono}`;
 
@@ -96,8 +171,8 @@ const Dashboard = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
+        localStorage.removeItem('token');
+        localStorage.removeItem('rol');
         navigate('/login');
     };
 
@@ -118,7 +193,6 @@ const Dashboard = () => {
                 <Button variant="outline-danger" onClick={handleLogout} className="fw-bold">Cerrar Sesión 🚪</Button>
             </div>
 
-            {/* KPIs Informativos */}
             <Row className="mb-4">
                 <Col md={6} className="mb-3 mb-md-0">
                     <Card className="text-center border-0 shadow-sm bg-success text-white p-3" style={{ borderRadius: '20px' }}>
@@ -130,14 +204,13 @@ const Dashboard = () => {
                     <Card className="text-center border-0 shadow-sm p-3" style={{ borderRadius: '20px', backgroundColor: '#e8f5e9' }}>
                         <h5 style={{ color: '#2e7d32' }}>Ingresos Hoy</h5>
                         <h2 className="fw-bold display-5" style={{ color: '#1b5e20' }}>
-                            ${parseFloat(kpis.ingresosHoy).toFixed(2)}
+                            ${parseFloat(kpis.ingresosHoy || 0).toFixed(2)}
                         </h2>
                     </Card>
                 </Col>
             </Row>
 
-            {/* Sistema de Pestañas */}
-            <Tabs defaultActiveKey="pedidos" className="mb-4 custom-tabs">
+            <Tabs defaultActiveKey="inventario" className="mb-4 custom-tabs">
                 <Tab eventKey="pedidos" title="Pedidos Recientes">
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
@@ -159,13 +232,14 @@ const Dashboard = () => {
                                         <td>
                                             <Form.Select 
                                                 size="sm" 
-                                                value={p.estado} 
-                                                onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
+                                                value={p.estado.toLowerCase()} 
+                                                onChange={(e) => handleUpdateStatus(p.id, e.target.value.toUpperCase())}
                                                 style={{ borderRadius: '10px' }}
                                             >
                                                 <option value="pendiente">Pendiente</option>
+                                                <option value="pagado">Pagado</option>
                                                 <option value="enviado">Enviado</option>
-                                                <option value="entregado">Entregado</option>
+                                                <option value="despachado">Despachado</option>
                                                 <option value="cancelado">Cancelado</option>
                                             </Form.Select>
                                         </td>
@@ -178,6 +252,66 @@ const Dashboard = () => {
                                 ))}
                             </tbody>
                         </Table>
+                    </Card>
+                </Tab>
+
+                <Tab eventKey="inventario" title="📦 Inventario">
+                    <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
+                        <Row>
+                            <Col md={4}>
+                                <div className="p-3 bg-light" style={{ borderRadius: '15px' }}>
+                                    <h5 className="fw-bold mb-3">Nuevo Producto</h5>
+                                    <Form onSubmit={handleCrearProducto}>
+                                        <Form.Group className="mb-2">
+                                            <Form.Label>Nombre</Form.Label>
+                                            <Form.Control required value={nuevoProducto.nombre} onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} />
+                                        </Form.Group>
+                                        <Form.Group className="mb-2">
+                                            <Form.Label>Precio</Form.Label>
+                                            <Form.Control required type="number" step="0.01" value={nuevoProducto.precio} onChange={e => setNuevoProducto({...nuevoProducto, precio: e.target.value})} />
+                                        </Form.Group>
+                                        <Form.Group className="mb-2">
+                                            <Form.Label>Stock</Form.Label>
+                                            <Form.Control required type="number" value={nuevoProducto.stock} onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} />
+                                        </Form.Group>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Imagen</Form.Label>
+                                            <Form.Control type="file" onChange={e => setImagen(e.target.files[0])} />
+                                        </Form.Group>
+                                        <Button type="submit" className="w-100" style={{ backgroundColor: '#2e7d32', border: 'none' }}>Guardar</Button>
+                                    </Form>
+                                </div>
+                            </Col>
+                            <Col md={8}>
+                                <Table responsive hover align="middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Imagen</th>
+                                            <th>Nombre</th>
+                                            <th>Precio</th>
+                                            <th>Stock</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {productos.map(p => (
+                                            <tr key={p.id}>
+                                                <td>
+                                                    {p.imagen_url && <img src={`http://localhost:3000${p.imagen_url}`} width="40" height="40" style={{ objectFit: 'cover', borderRadius: '5px' }} alt="" />}
+                                                </td>
+                                                <td>{p.nombre}</td>
+                                                <td className="fw-bold">${p.precio}</td>
+                                                <td>{p.stock}</td>
+                                                <td>
+                                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleEditClick(p)}>✏️</Button>
+                                                    <Button variant="outline-danger" size="sm" onClick={() => eliminarProducto(p.id)}>🗑️</Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            </Col>
+                        </Row>
                     </Card>
                 </Tab>
 
@@ -199,21 +333,8 @@ const Dashboard = () => {
                                         <td>{m.nombre}</td>
                                         <td className="text-muted">{m.asunto}</td>
                                         <td className="text-center">
-                                            <Button 
-                                                variant="link" 
-                                                title="Ver Mensaje"
-                                                onClick={() => handleViewMessage(m)}
-                                            >
-                                                👁️
-                                            </Button>
-                                            <Button 
-                                                variant="link" 
-                                                className="text-danger" 
-                                                onClick={() => handleDeleteMessage(m.id)}
-                                                title="Eliminar"
-                                            >
-                                                🗑️
-                                            </Button>
+                                            <Button variant="link" title="Ver Mensaje" onClick={() => handleViewMessage(m)}>👁️</Button>
+                                            <Button variant="link" className="text-danger" title="Eliminar" onClick={() => handleDeleteMessage(m.id)}>🗑️</Button>
                                         </td>
                                     </tr>
                                 ))}
@@ -224,7 +345,6 @@ const Dashboard = () => {
                 </Tab>
             </Tabs>
 
-            {/* Modal de Detalle de Pedido */}
             <Modal show={showModal} onHide={() => setShowModal(false)} centered>
                 <Modal.Header closeButton style={{ border: 'none' }}>
                     <Modal.Title className="fw-bold" style={{ color: '#2e7d32' }}>
@@ -234,9 +354,11 @@ const Dashboard = () => {
                 <Modal.Body className="bg-light mx-3 mb-3" style={{ borderRadius: '15px' }}>
                     {selectedOrder && (
                         <div className="p-2">
-                            <p className="mb-2"><strong>Cédula:</strong> {selectedOrder.cliente_cedula}</p>
+                            <p className="mb-2"><strong>Cliente:</strong> {selectedOrder.cliente_nombre}</p>
+                            <p className="mb-2"><strong>Email:</strong> {selectedOrder.cliente_email}</p>
+                            <p className="mb-2"><strong>Teléfono:</strong> {selectedOrder.cliente_telefono || selectedOrder.telefono}</p>
+                            <p className="mb-2"><strong>Comprobante:</strong> <Badge bg="info">{selectedOrder.num_comprobante}</Badge></p>
                             <p className="mb-2"><strong>Dirección:</strong> {selectedOrder.direccion}</p>
-                            <p className="mb-2"><strong>Teléfono:</strong> {selectedOrder.telefono}</p>
                             <p className="mb-2"><strong>Método de Pago:</strong> {selectedOrder.metodo_pago}</p>
                             <hr/>
                             <h4 className="text-end fw-bold" style={{ color: '#2e7d32' }}>
@@ -247,7 +369,33 @@ const Dashboard = () => {
                 </Modal.Body>
             </Modal>
 
-            {/* Modal de Detalle de Mensaje */}
+            <Modal show={showEditProductModal} onHide={() => setShowEditProductModal(false)} centered>
+                <Modal.Header closeButton style={{ border: 'none' }}>
+                    <Modal.Title className="fw-bold" style={{ color: '#2e7d32' }}>Editar Producto</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form onSubmit={handleActualizarProducto}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Nombre</Form.Label>
+                            <Form.Control required value={productoAEditar.nombre} onChange={e => setProductoAEditar({...productoAEditar, nombre: e.target.value})} />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Precio</Form.Label>
+                            <Form.Control required type="number" step="0.01" value={productoAEditar.precio} onChange={e => setProductoAEditar({...productoAEditar, precio: e.target.value})} />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Stock</Form.Label>
+                            <Form.Control required type="number" value={productoAEditar.stock} onChange={e => setProductoAEditar({...productoAEditar, stock: e.target.value})} />
+                        </Form.Group>
+                        <Form.Group className="mb-4">
+                            <Form.Label>Actualizar Imagen (Opcional)</Form.Label>
+                            <Form.Control type="file" onChange={e => setImagenEdicion(e.target.files[0])} />
+                        </Form.Group>
+                        <Button type="submit" className="w-100 fw-bold" style={{ backgroundColor: '#2e7d32', border: 'none' }}>Actualizar Producto</Button>
+                    </Form>
+                </Modal.Body>
+            </Modal>
+
             <Modal show={showMessageModal} onHide={() => setShowMessageModal(false)} centered>
                 <Modal.Header closeButton style={{ border: 'none' }}>
                     <Modal.Title className="fw-bold" style={{ color: '#2e7d32' }}>
