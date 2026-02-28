@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 
-// Forzamos el uso del servicio 'gmail' que gestiona mejor los túneles en nubes como Render
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -9,12 +8,11 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Verificación de conexión al arrancar (aparecerá en los logs de Render)
 transporter.verify((error, success) => {
     if (error) {
-        console.log("❌ Error de configuración de correo:", error.message);
+        console.log("❌ ERROR CRÍTICO EN MAILER:", error.message);
     } else {
-        console.log("✅ El servidor de correos está listo para enviar");
+        console.log("✅ SISTEMA DE CORREOS OPERATIVO");
     }
 });
 
@@ -31,27 +29,29 @@ const enviarConfirmacionPedido = (emailCliente, datosPedido) => {
         from: '"EkiNature" <ocpplagas@gmail.com>',
         to: emailCliente,
         subject: `✅ Pedido Confirmado - EkiNature #${datosPedido.pedidoId}`,
-        html: `<div style="font-family: Arial;">
-                <h2>¡Hola ${datosPedido.cliente_nombre}!</h2>
-                <p>Tu pedido #${datosPedido.pedidoId} ha sido recibido.</p>
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2e7d32;">¡Hola ${datosPedido.cliente_nombre}!</h2>
+                <p>Tu pedido #${datosPedido.pedidoId} ha sido recibido correctamente.</p>
                 <table style="width: 100%; border-collapse: collapse;">
-                    ${productosHtml}
+                    <thead><tr style="background: #f0f0f0;"><th>Producto</th><th>Cant</th><th>Total</th></tr></thead>
+                    <tbody>${productosHtml}</tbody>
                 </table>
-                <h3>Total: $${parseFloat(datosPedido.total).toFixed(2)}</h3>
-               </div>`
+                <p><strong>Total: $${parseFloat(datosPedido.total).toFixed(2)}</strong></p>
+            </div>
+        `
     };
-
-    transporter.sendMail(mailOptions).catch(err => console.log('❌ Fallo email cliente:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('Error mail cliente:', err.message));
 };
 
 const enviarAlertaAdmin = (datosPedido) => {
     const mailOptions = {
         from: '"Sistema EkiNature" <ocpplagas@gmail.com>',
         to: 'ocpplagas@gmail.com',
-        subject: `🛒 NUEVA ORDEN - #${datosPedido.pedidoId}`,
-        text: `Nueva orden de ${datosPedido.cliente_nombre} por un total de $${datosPedido.total}`
+        subject: `🛒 NUEVA ORDEN RECIBIDA - #${datosPedido.pedidoId}`,
+        text: `Nueva orden de ${datosPedido.cliente_nombre} por $${datosPedido.total}`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('❌ Fallo email admin:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('Error mail admin:', err.message));
 };
 
 const enviarAlertaContacto = (datos) => {
@@ -59,9 +59,9 @@ const enviarAlertaContacto = (datos) => {
         from: '"Sistema EkiNature" <ocpplagas@gmail.com>',
         to: 'ocpplagas@gmail.com',
         subject: `Consulta: ${datos.asunto}`,
-        text: `Mensaje de ${datos.nombre} (${datos.email}): ${datos.mensaje}`
+        text: `Mensaje de ${datos.nombre}: ${datos.mensaje}`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('❌ Fallo email contacto:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('Error mail contacto:', err.message));
 };
 
 module.exports = { enviarConfirmacionPedido, enviarAlertaAdmin, enviarAlertaContacto };

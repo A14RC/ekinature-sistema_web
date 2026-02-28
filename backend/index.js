@@ -8,14 +8,11 @@ dotenv.config();
 
 const app = express();
 
-// Crear carpeta uploads de forma segura antes de cargar rutas
 const uploadDir = path.resolve(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Carga del mailer con verificación integrada
-console.log('Iniciando configuración de Mailer...');
 require('./src/config/mailer');
 
 const authRoutes = require('./src/routes/authRoutes');
@@ -38,5 +35,5 @@ app.use('/api/entregas', entregaRoutes);
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-    console.log(`✅ Servidor de EkiNature corriendo en el puerto ${PORT}`);
+    console.log(`✅ Servidor ONLINE en puerto ${PORT}`);
 });
