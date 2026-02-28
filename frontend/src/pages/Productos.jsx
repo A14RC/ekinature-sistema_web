@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
 import { useCart } from '../context/CartContext';
 import axios from 'axios';
+import API_BASE_URL from '../api';
 
 const Productos = () => {
     const [productos, setProductos] = useState([]);
@@ -10,7 +11,7 @@ const Productos = () => {
     useEffect(() => {
         const cargarProductos = async () => {
             try {
-                const respuesta = await axios.get('http://localhost:3000/api/productos');
+                const respuesta = await axios.get(`${API_BASE_URL}/productos`);
                 setProductos(respuesta.data);
             } catch (error) {
                 console.error("Error al cargar los productos de la base de datos");
@@ -34,7 +35,7 @@ const Productos = () => {
                                 <div style={{ height: '250px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                                     <Card.Img 
                                         variant="top" 
-                                        src={producto.imagen_url ? `http://localhost:3000${producto.imagen_url}` : '/img/default-placeholder.png'} 
+                                        src={producto.imagen_url ? `https://ekinature-backend.onrender.com${producto.imagen_url}` : '/img/default-placeholder.png'} 
                                         style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
                                     />
                                 </div>

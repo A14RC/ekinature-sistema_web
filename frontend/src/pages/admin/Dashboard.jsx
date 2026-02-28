@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Container, Row, Col, Card, Table, Button, Modal, Form, Tabs, Tab, Badge } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../../api';
 
 const Dashboard = () => {
     const [pedidos, setPedidos] = useState([]);
@@ -26,7 +27,6 @@ const Dashboard = () => {
     const prevPedidosCount = useRef(0);
     const prevMensajesCount = useRef(0);
 
-    // simple beep using Web Audio API; avoids external asset and works in most browsers
     const playNotificationSound = () => {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -47,29 +47,28 @@ const Dashboard = () => {
             const token = localStorage.getItem('token');
             const config = { headers: { Authorization: `Bearer ${token}` } };
 
-            const resProd = await axios.get('http://localhost:3000/api/productos');
+            const resProd = await axios.get(`${API_BASE_URL}/productos`);
             setProductos(resProd.data);
 
-            const resOrders = await axios.get('http://localhost:3000/api/pedidos');
+            const resOrders = await axios.get(`${API_BASE_URL}/pedidos`);
             if (prevPedidosCount.current !== 0 && resOrders.data.length > prevPedidosCount.current) playNotificationSound();
             prevPedidosCount.current = resOrders.data.length;
             setPedidos(resOrders.data);
 
-            const resMsgs = await axios.get('http://localhost:3000/api/contacto');
+            const resMsgs = await axios.get(`${API_BASE_URL}/contacto`);
             if (prevMensajesCount.current !== 0 && resMsgs.data.length > prevMensajesCount.current) playNotificationSound();
             prevMensajesCount.current = resMsgs.data.length;
 
-            // use server-provided `leido` flag and convert to boolean
             const mensajesFromServer = resMsgs.data.map(m => ({
                 ...m,
                 leido: !!m.leido
             }));
             setMensajes(mensajesFromServer);
 
-            const resOps = await axios.get('http://localhost:3000/api/auth/operadores', config);
+            const resOps = await axios.get(`${API_BASE_URL}/auth/operadores`, config);
             setOperadores(resOps.data);
 
-            const resKpis = await axios.get('http://localhost:3000/api/pedidos/kpis/hoy');
+            const resKpis = await axios.get(`${API_BASE_URL}/pedidos/kpis/hoy`);
             setKpis(resKpis.data);
         } catch (error) {}
     };
@@ -84,11 +83,7 @@ const Dashboard = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            const rol = localStorage.getItem('rol');
-            console.log('Token enviado:', token ? 'Sí' : 'No');
-            console.log('Rol del usuario:', rol);
-            
-            await axios.post('http://localhost:3000/api/auth/register', nuevoAdmin, {
+            await axios.post(`${API_BASE_URL}/auth/register`, nuevoAdmin, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             alert("Responsable registrado con éxito");
@@ -96,7 +91,6 @@ const Dashboard = () => {
             setNuevoAdmin({ usuario: '', password: '', rol: 'OPERADOR' });
             fetchData();
         } catch (err) {
-            console.error('Error al registrar responsable:', err.response?.data);
             alert(err.response?.data?.mensaje || err.message || "Error al registrar responsable");
         }
     };
@@ -105,7 +99,7 @@ const Dashboard = () => {
         if (window.confirm("¿Eliminar este acceso de responsable?")) {
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:3000/api/auth/operadores/${id}`, {
+                await axios.delete(`${API_BASE_URL}/auth/operadores/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 fetchData();
@@ -119,7 +113,7 @@ const Dashboard = () => {
         Object.entries(nuevoProducto).forEach(([key, val]) => formData.append(key, val));
         if (imagen) formData.append('imagen', imagen);
         try {
-            await axios.post('http://localhost:3000/api/productos', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await axios.post(`${API_BASE_URL}/productos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             setNuevoProducto({ nombre: '', descripcion: '', precio: '', stock: '' });
             setImagen(null);
             fetchData();
@@ -132,7 +126,7 @@ const Dashboard = () => {
         Object.entries(productoAEditar).forEach(([key, val]) => formData.append(key, val));
         if (imagenEdicion) formData.append('imagen', imagenEdicion);
         try {
-            await axios.put(`http://localhost:3000/api/productos/${productoAEditar.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await axios.put(`${API_BASE_URL}/productos/${productoAEditar.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             setShowEditProductModal(false);
             fetchData();
         } catch (err) { alert("Error al actualizar"); }
@@ -141,7 +135,7 @@ const Dashboard = () => {
     const handleUpdateStatus = async (id, nuevoEstado) => {
         try {
             const est = nuevoEstado.toUpperCase();
-            await axios.put(`http://localhost:3000/api/pedidos/${id}/estado`, { estado: est });
+            await axios.put(`${API_BASE_URL}/pedidos/${id}/estado`, { estado: est });
             setPedidos(pedidos.map(p => p.id === id ? { ...p, estado: est } : p));
         } catch (err) {}
     };
@@ -188,7 +182,7 @@ const Dashboard = () => {
 
     const handleViewMessage = async (m) => {
         try {
-            await axios.put(`http://localhost:3000/api/contacto/${m.id}/leido`);
+            await axios.put(`${API_BASE_URL}/contacto/${m.id}/leido`);
         } catch (err) {
             console.error('Error marcando mensaje como leído', err);
         }
@@ -220,7 +214,7 @@ const Dashboard = () => {
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
                             <thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th className="text-center">Acciones</th></tr></thead>
-                            <tbody>{pedidos.map(p => (<tr key={p.id}><td>#{p.id}</td><td>{p.cliente_nombre}</td><td className="fw-bold text-success">${parseFloat(p.total).toFixed(2)}</td><td><Form.Select size="sm" value={p.estado?.toUpperCase() || 'PENDIENTE'} onChange={(e) => handleUpdateStatus(p.id, e.target.value)} style={{ borderRadius: '10px' }}><option value="PENDIENTE">Pendiente</option><option value="ENVIADO">Enviado</option><option value="CANCELADO">Cancelado</option></Form.Select></td><td className="text-center"><Button variant="link" onClick={() => { setSelectedOrder(p); setShowModal(true); }}>👁️</Button><Button variant="link" onClick={() => generateLabel(p)}>🏷️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { await axios.delete(`http://localhost:3000/api/pedidos/${p.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
+                            <tbody>{pedidos.map(p => (<tr key={p.id}><td>#{p.id}</td><td>{p.cliente_nombre}</td><td className="fw-bold text-success">${parseFloat(p.total).toFixed(2)}</td><td><Form.Select size="sm" value={p.estado?.toUpperCase() || 'PENDIENTE'} onChange={(e) => handleUpdateStatus(p.id, e.target.value)} style={{ borderRadius: '10px' }}><option value="PENDIENTE">Pendiente</option><option value="ENVIADO">Enviado</option><option value="CANCELADO">Cancelado</option></Form.Select></td><td className="text-center"><Button variant="link" onClick={() => { setSelectedOrder(p); setShowModal(true); }}>👁️</Button><Button variant="link" onClick={() => generateLabel(p)}>🏷️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { await axios.delete(`${API_BASE_URL}/pedidos/${p.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
                         </Table>
                     </Card>
                 </Tab>
@@ -229,7 +223,7 @@ const Dashboard = () => {
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Row>
                             <Col md={4}><div className="p-3 bg-light" style={{ borderRadius: '15px' }}><h5 className="fw-bold mb-3">Nuevo Producto</h5><Form onSubmit={handleCrearProducto}><Form.Group className="mb-2"><Form.Label>Nombre</Form.Label><Form.Control required onChange={e => setNuevoProducto({...nuevoProducto, nombre: e.target.value})} /></Form.Group><Form.Group className="mb-2"><Form.Label>Precio</Form.Label><Form.Control required type="number" step="0.01" onChange={e => setNuevoProducto({...nuevoProducto, precio: e.target.value})} /></Form.Group><Form.Group className="mb-2"><Form.Label>Stock</Form.Label><Form.Control required type="number" onChange={e => setNuevoProducto({...nuevoProducto, stock: e.target.value})} /></Form.Group><Form.Group className="mb-3"><Form.Label>Imagen</Form.Label><Form.Control type="file" onChange={e => setImagen(e.target.files[0])} /></Form.Group><Button type="submit" className="w-100" style={{ backgroundColor: '#2e7d32', border: 'none' }}>Guardar</Button></Form></div></Col>
-                            <Col md={8}><Table responsive hover align="middle"><thead><tr><th>Imagen</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Acción</th></tr></thead><tbody>{productos.map(p => (<tr key={p.id}><td>{p.imagen_url && <img src={`http://localhost:3000${p.imagen_url}`} width="40" height="40" style={{ objectFit: 'cover', borderRadius: '5px' }} alt=""/>}</td><td>{p.nombre}</td><td className="fw-bold">${p.precio}</td><td>{p.stock}</td><td><Button variant="outline-primary" size="sm" className="me-2" onClick={() => { setProductoAEditar({...p, descripcion: p.descripcion || ''}); setShowEditProductModal(true); }}>✏️</Button><Button variant="outline-danger" size="sm" onClick={async () => { if(window.confirm("¿Eliminar?")) { await axios.delete(`http://localhost:3000/api/productos/${p.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody></Table></Col>
+                            <Col md={8}><Table responsive hover align="middle"><thead><tr><th>Imagen</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Acción</th></tr></thead><tbody>{productos.map(p => (<tr key={p.id}><td>{p.imagen_url && <img src={`https://ekinature-backend.onrender.com${p.imagen_url}`} width="40" height="40" style={{ objectFit: 'cover', borderRadius: '5px' }} alt=""/>}</td><td>{p.nombre}</td><td className="fw-bold">${p.precio}</td><td>{p.stock}</td><td><Button variant="outline-primary" size="sm" className="me-2" onClick={() => { setProductoAEditar({...p, descripcion: p.descripcion || ''}); setShowEditProductModal(true); }}>✏️</Button><Button variant="outline-danger" size="sm" onClick={async () => { if(window.confirm("¿Eliminar?")) { await axios.delete(`${API_BASE_URL}/productos/${p.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody></Table></Col>
                         </Row>
                     </Card>
                 </Tab>
@@ -238,7 +232,7 @@ const Dashboard = () => {
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
                             <thead><tr><th>Fecha</th><th>Nombre</th><th>Asunto</th><th className="text-center">Acción</th></tr></thead>
-                            <tbody>{mensajes.map(m => (<tr key={m.id} style={!m.leido ? { fontWeight: 'bold', backgroundColor: '#f8f9fa' } : {}}><td>{new Date(m.fecha).toLocaleDateString()}</td><td>{m.nombre}</td><td className="text-muted">{m.asunto}</td><td className="text-center"><Button variant="link" onClick={() => handleViewMessage(m)}>👁️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { await axios.delete(`http://localhost:3000/api/contacto/${m.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
+                            <tbody>{mensajes.map(m => (<tr key={m.id} style={!m.leido ? { fontWeight: 'bold', backgroundColor: '#f8f9fa' } : {}}><td>{new Date(m.fecha).toLocaleDateString()}</td><td>{m.nombre}</td><td className="text-muted">{m.asunto}</td><td className="text-center"><Button variant="link" onClick={() => handleViewMessage(m)}>👁️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { await axios.delete(`${API_BASE_URL}/contacto/${m.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
                         </Table>
                     </Card>
                 </Tab>

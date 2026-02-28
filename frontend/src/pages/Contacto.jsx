@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert } from 'react-bootstrap';
 import axios from 'axios';
+import API_BASE_URL from '../api';
 
 const Contacto = () => {
     const [datos, setDatos] = useState({ nombre: '', email: '', telefono: '', asunto: '', mensaje: '' });
@@ -9,7 +10,7 @@ const Contacto = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:3000/api/contacto', datos);
+            await axios.post(`${API_BASE_URL}/contacto`, datos);
             setEnviado(true);
             setDatos({ nombre: '', email: '', telefono: '', asunto: '', mensaje: '' });
         } catch (error) {

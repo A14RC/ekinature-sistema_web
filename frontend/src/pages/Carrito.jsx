@@ -3,6 +3,7 @@ import { useCart } from '../context/CartContext';
 import { Container, Table, Button, Form, Row, Col, Card, Alert } from 'react-bootstrap';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import API_BASE_URL from '../api';
 
 const Carrito = () => {
     const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -44,7 +45,7 @@ const Carrito = () => {
         };
 
         try {
-            await axios.post('http://localhost:3000/api/pedidos', pedido);
+            await axios.post(`${API_BASE_URL}/pedidos`, pedido);
             clearCart();
             setStep(3);
         } catch (error) {

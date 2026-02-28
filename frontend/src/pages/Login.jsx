@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../api';
 
 const Login = () => {
     const [usuario, setUsuario] = useState('');
@@ -12,7 +13,7 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:3000/api/auth/login', { usuario, password });
+            const res = await axios.post(`${API_BASE_URL}/auth/login`, { usuario, password });
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('rol', res.data.rol);
             localStorage.setItem('usuario', res.data.usuario);
