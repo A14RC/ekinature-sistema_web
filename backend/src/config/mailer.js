@@ -1,18 +1,26 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // STARTTLS
     auth: {
         user: 'ocpplagas@gmail.com',
         pass: 'shfi htdy yotb ftax'
-    }
+    },
+    // ESTA ES LA CLAVE: Forzamos IPv4 para evitar el error ENETUNREACH de Render
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    family: 4 
 });
 
+// Verificación proactiva
 transporter.verify((error, success) => {
     if (error) {
-        console.log("❌ ERROR CRÍTICO EN MAILER:", error.message);
+        console.log("❌ FALLO DE CONEXIÓN SMTP (IPv4):", error.message);
     } else {
-        console.log("✅ SISTEMA DE CORREOS OPERATIVO");
+        console.log("✅ SISTEMA DE CORREOS OPERATIVO Y CONECTADO");
     }
 });
 
@@ -32,12 +40,13 @@ const enviarConfirmacionPedido = (emailCliente, datosPedido) => {
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2e7d32;">¡Hola ${datosPedido.cliente_nombre}!</h2>
-                <p>Tu pedido #${datosPedido.pedidoId} ha sido recibido correctamente.</p>
+                <p>Tu pedido #${datosPedido.pedidoId} ha sido recibido y está siendo procesado.</p>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead><tr style="background: #f0f0f0;"><th>Producto</th><th>Cant</th><th>Total</th></tr></thead>
                     <tbody>${productosHtml}</tbody>
                 </table>
-                <p><strong>Total: $${parseFloat(datosPedido.total).toFixed(2)}</strong></p>
+                <p><strong>Total pagado: $${parseFloat(datosPedido.total).toFixed(2)}</strong></p>
+                <p>Método de Pago: ${datosPedido.metodo_pago}</p>
             </div>
         `
     };
@@ -49,7 +58,7 @@ const enviarAlertaAdmin = (datosPedido) => {
         from: '"Sistema EkiNature" <ocpplagas@gmail.com>',
         to: 'ocpplagas@gmail.com',
         subject: `🛒 NUEVA ORDEN RECIBIDA - #${datosPedido.pedidoId}`,
-        text: `Nueva orden de ${datosPedido.cliente_nombre} por $${datosPedido.total}`
+        text: `Nueva orden de ${datosPedido.cliente_nombre} por $${datosPedido.total}. Revisar Dashboard.`
     };
     transporter.sendMail(mailOptions).catch(err => console.log('Error mail admin:', err.message));
 };
