@@ -1,76 +1,51 @@
 const nodemailer = require('nodemailer');
 
+// Forzamos IPv4 y el puerto 587 de forma explícita
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // STARTTLS
+    secure: false, 
     auth: {
         user: 'ocpplagas@gmail.com',
         pass: 'shfi htdy yotb ftax'
     },
-    // ESTA ES LA CLAVE: Forzamos IPv4 para evitar el error ENETUNREACH de Render
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    // CLAVE PARA RENDER: Forzar IPv4 para evitar ENETUNREACH
     family: 4 
 });
 
-// Verificación proactiva
-transporter.verify((error, success) => {
-    if (error) {
-        console.log("❌ FALLO DE CONEXIÓN SMTP (IPv4):", error.message);
-    } else {
-        console.log("✅ SISTEMA DE CORREOS OPERATIVO Y CONECTADO");
-    }
+transporter.verify((error) => {
+    if (error) console.log("❌ Error SMTP:", error.message);
+    else console.log("✅ SISTEMA DE CORREOS OPERATIVO (IPv4)");
 });
 
 const enviarConfirmacionPedido = (emailCliente, datosPedido) => {
-    const productosHtml = datosPedido.productos.map(p => `
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;">${p.nombre}</td>
-            <td style="padding: 10px; text-align: center;">${p.cantidad}</td>
-            <td style="padding: 10px; text-align: right;">$${parseFloat(p.precio).toFixed(2)}</td>
-        </tr>
-    `).join('');
-
     const mailOptions = {
         from: '"EkiNature" <ocpplagas@gmail.com>',
         to: emailCliente,
         subject: `✅ Pedido Confirmado - EkiNature #${datosPedido.pedidoId}`,
-        html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2e7d32;">¡Hola ${datosPedido.cliente_nombre}!</h2>
-                <p>Tu pedido #${datosPedido.pedidoId} ha sido recibido y está siendo procesado.</p>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead><tr style="background: #f0f0f0;"><th>Producto</th><th>Cant</th><th>Total</th></tr></thead>
-                    <tbody>${productosHtml}</tbody>
-                </table>
-                <p><strong>Total pagado: $${parseFloat(datosPedido.total).toFixed(2)}</strong></p>
-                <p>Método de Pago: ${datosPedido.metodo_pago}</p>
-            </div>
-        `
+        html: `<h2>¡Hola ${datosPedido.cliente_nombre}!</h2><p>Pedido #${datosPedido.pedidoId} recibido.</p>`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('Error mail cliente:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('Fallo mail cliente:', err.message));
 };
 
 const enviarAlertaAdmin = (datosPedido) => {
     const mailOptions = {
-        from: '"Sistema EkiNature" <ocpplagas@gmail.com>',
+        from: '"EkiNature" <ocpplagas@gmail.com>',
         to: 'ocpplagas@gmail.com',
-        subject: `🛒 NUEVA ORDEN RECIBIDA - #${datosPedido.pedidoId}`,
-        text: `Nueva orden de ${datosPedido.cliente_nombre} por $${datosPedido.total}. Revisar Dashboard.`
+        subject: `🛒 NUEVA ORDEN - #${datosPedido.pedidoId}`,
+        text: `Nueva orden de $${datosPedido.total}`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('Error mail admin:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('Fallo mail admin:', err.message));
 };
 
 const enviarAlertaContacto = (datos) => {
     const mailOptions = {
-        from: '"Sistema EkiNature" <ocpplagas@gmail.com>',
+        from: '"EkiNature" <ocpplagas@gmail.com>',
         to: 'ocpplagas@gmail.com',
         subject: `Consulta: ${datos.asunto}`,
-        text: `Mensaje de ${datos.nombre}: ${datos.mensaje}`
+        text: `Mensaje: ${datos.mensaje}`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('Error mail contacto:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('Fallo mail contacto:', err.message));
 };
 
 module.exports = { enviarConfirmacionPedido, enviarAlertaAdmin, enviarAlertaContacto };

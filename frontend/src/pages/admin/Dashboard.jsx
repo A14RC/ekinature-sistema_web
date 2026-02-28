@@ -28,18 +28,10 @@ const Dashboard = () => {
     const prevMensajesCount = useRef(0);
 
     const playNotificationSound = () => {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const ctx = new AudioContext();
-            const osc = ctx.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, ctx.currentTime);
-            osc.connect(ctx.destination);
-            osc.start();
-            setTimeout(() => osc.stop(), 200);
-        } catch (err) {
-            console.log('Notification sound error', err);
-        }
+        // Sonido de campana profesional
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.7;
+        audio.play().catch(e => console.warn("Navegador bloqueó audio:", e));
     };
 
     const fetchData = async () => {
