@@ -30,7 +30,20 @@ const Dashboard = () => {
     const playNotificationSound = () => {
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audio.volume = 0.8;
-        audio.play().catch(e => console.log("Esperando interacción para habilitar audio..."));
+        audio.play().catch(e => console.log("Audio esperando interacción para habilitar audio..."));
+    };
+
+    const handleVerDetallePedido = async (id) => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_BASE_URL}/pedidos/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSelectedOrder(res.data);
+            setShowModal(true);
+        } catch (err) {
+            alert("Error al cargar los detalles del pedido.");
+        }
     };
 
     const fetchData = async () => {
@@ -212,7 +225,7 @@ const Dashboard = () => {
         }
         setMensajes(prev => prev.map(msg => msg.id === m.id ? { ...msg, leido: true } : msg));
         setSelectedMessage(m);
-        setShowMessageModal(true);
+        showMessageModal(true);
     };
 
     const countP = pedidos.filter(p => p.estado?.toUpperCase() === 'PENDIENTE').length;
@@ -238,7 +251,7 @@ const Dashboard = () => {
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
                             <thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th className="text-center">Acciones</th></tr></thead>
-                            <tbody>{pedidos.map(p => (<tr key={p.id}><td>#{p.id}</td><td>{p.cliente_nombre}</td><td className="fw-bold text-success">${parseFloat(p.total).toFixed(2)}</td><td><Form.Select size="sm" value={p.estado?.toUpperCase() || 'PENDIENTE'} onChange={(e) => handleUpdateStatus(p.id, e.target.value)} style={{ borderRadius: '10px' }}><option value="PENDIENTE">Pendiente</option><option value="ENVIADO">Enviado</option><option value="CANCELADO">Cancelado</option></Form.Select></td><td className="text-center"><Button variant="link" onClick={() => { setSelectedOrder(p); setShowModal(true); }}>👁️</Button><Button variant="link" onClick={() => generateLabel(p)}>🏷️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { const token = localStorage.getItem('token'); await axios.delete(`${API_BASE_URL}/pedidos/${p.id}`, { headers: { Authorization: `Bearer ${token}` } }); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
+                            <tbody>{pedidos.map(p => (<tr key={p.id}><td>#{p.id}</td><td>{p.cliente_nombre}</td><td className="fw-bold text-success">${parseFloat(p.total).toFixed(2)}</td><td><Form.Select size="sm" value={p.estado?.toUpperCase() || 'PENDIENTE'} onChange={(e) => handleUpdateStatus(p.id, e.target.value)} style={{ borderRadius: '10px' }}><option value="PENDIENTE">Pendiente</option><option value="ENVIADO">Enviado</option><option value="CANCELADO">Cancelado</option></Form.Select></td><td className="text-center"><Button variant="link" onClick={() => handleVerDetallePedido(p.id)}>👁️</Button><Button variant="link" onClick={() => generateLabel(p)}>🏷️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { const token = localStorage.getItem('token'); await axios.delete(`${API_BASE_URL}/pedidos/${p.id}`, { headers: { Authorization: `Bearer ${token}` } }); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
                         </Table>
                     </Card>
                 </Tab>
@@ -291,7 +304,7 @@ const Dashboard = () => {
                             <Row className="mb-4">
                                 <Col md={6}>
                                     <p><strong>Cliente:</strong> {selectedOrder.cliente_nombre}</p>
-                                    <p><strong>Email:</strong> {selectedOrder.cliente_email}</p>
+                                    <p><strong>Email:</strong> {selectedOrder.cliente_email || selectedOrder.email}</p>
                                     <p><strong>Teléfono:</strong> {selectedOrder.cliente_telefono || selectedOrder.telefono}</p>
                                 </Col>
                                 <Col md={6}>
@@ -302,7 +315,7 @@ const Dashboard = () => {
                             </Row>
                             
                             <h5 className="fw-bold mb-3" style={{ color: '#2e7d32' }}>📦 Productos Comprados</h5>
-                            <Table responsive bordered className="bg-white">
+                            <Table responsive bordered className="bg-white shadow-sm">
                                 <thead className="table-success">
                                     <tr>
                                         <th>Producto</th>
@@ -312,12 +325,12 @@ const Dashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {selectedOrder.productos && selectedOrder.productos.map((item, idx) => (
+                                    {(selectedOrder.detalles || []).map((item, idx) => (
                                         <tr key={idx}>
                                             <td>{item.nombre}</td>
                                             <td className="text-center">{item.cantidad}</td>
-                                            <td className="text-end">${parseFloat(item.precio).toFixed(2)}</td>
-                                            <td className="text-end">${(item.cantidad * item.precio).toFixed(2)}</td>
+                                            <td className="text-end">${parseFloat(item.precio_unitario).toFixed(2)}</td>
+                                            <td className="text-end">${(item.cantidad * item.precio_unitario).toFixed(2)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
