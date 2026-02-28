@@ -26,9 +26,20 @@ const Dashboard = () => {
     const prevPedidosCount = useRef(0);
     const prevMensajesCount = useRef(0);
 
+    // simple beep using Web Audio API; avoids external asset and works in most browsers
     const playNotificationSound = () => {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audio.play().catch(e => console.log("Audio bloqueado", e));
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.connect(ctx.destination);
+            osc.start();
+            setTimeout(() => osc.stop(), 200);
+        } catch (err) {
+            console.log('Notification sound error', err);
+        }
     };
 
     const fetchData = async () => {
@@ -47,7 +58,13 @@ const Dashboard = () => {
             const resMsgs = await axios.get('http://localhost:3000/api/contacto');
             if (prevMensajesCount.current !== 0 && resMsgs.data.length > prevMensajesCount.current) playNotificationSound();
             prevMensajesCount.current = resMsgs.data.length;
-            setMensajes(resMsgs.data.map(m => ({ ...m, leido: mensajes.find(ex => ex.id === m.id)?.leido || false })));
+
+            // use server-provided `leido` flag and convert to boolean
+            const mensajesFromServer = resMsgs.data.map(m => ({
+                ...m,
+                leido: !!m.leido
+            }));
+            setMensajes(mensajesFromServer);
 
             const resOps = await axios.get('http://localhost:3000/api/auth/operadores', config);
             setOperadores(resOps.data);
@@ -169,10 +186,15 @@ const Dashboard = () => {
         setTimeout(() => { printWindow.print(); }, 500);
     };
 
-    const handleViewMessage = (m) => {
+    const handleViewMessage = async (m) => {
+        try {
+            await axios.put(`http://localhost:3000/api/contacto/${m.id}/leido`);
+        } catch (err) {
+            console.error('Error marcando mensaje como leído', err);
+        }
+        setMensajes(prev => prev.map(msg => msg.id === m.id ? { ...msg, leido: true } : msg));
         setSelectedMessage(m);
         setShowMessageModal(true);
-        setMensajes(mensajes.map(msg => msg.id === m.id ? { ...msg, leido: true } : msg));
     };
 
     const countP = pedidos.filter(p => p.estado?.toUpperCase() === 'PENDIENTE').length;
