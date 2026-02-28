@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs'); // Requerido para carpetas
 const dotenv = require('dotenv');
 
 const authRoutes = require('./src/routes/authRoutes');
@@ -12,6 +13,14 @@ const entregaRoutes = require('./src/routes/entregaRoutes');
 dotenv.config();
 
 const app = express();
+
+// --- BLOQUE CRÍTICO PARA PRODUCCIÓN ---
+// Crea la carpeta uploads si no existe al iniciar el servidor
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+// ---------------------------------------
 
 app.use(cors());
 app.use(express.json());
