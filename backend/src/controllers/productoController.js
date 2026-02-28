@@ -42,7 +42,6 @@ const productoController = {
             if (req.file) {
                 imagen_url = `/uploads/${req.file.filename}`;
                 if (productoActual[0].imagen_url) {
-                    // Ruta robusta para borrar
                     const rutaImagenAnterior = path.join(__dirname, '../../', productoActual[0].imagen_url);
                     if (fs.existsSync(rutaImagenAnterior)) {
                         fs.unlinkSync(rutaImagenAnterior);
