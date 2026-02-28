@@ -72,7 +72,6 @@ const Dashboard = () => {
         fetchData();
         const interval = setInterval(fetchData, 5000);
         
-        // Desbloqueo de audio en el primer click
         const unlockAudio = () => {
             playNotificationSound();
             window.removeEventListener('click', unlockAudio);
@@ -257,7 +256,7 @@ const Dashboard = () => {
                     <Card className="border-0 shadow-sm p-4" style={{ borderRadius: '25px' }}>
                         <Table responsive hover align="middle">
                             <thead><tr><th>Fecha</th><th>Nombre</th><th>Asunto</th><th className="text-center">Acción</th></tr></thead>
-                            <tbody>{mensajes.map(m => (<tr key={m.id} style={!m.leido ? { fontWeight: 'bold', backgroundColor: '#f8f9fa' } : {}}><td>{new Date(m.fecha).toLocaleDateString()}</td><td>{m.nombre}</td><td className="text-muted">{m.asunto}</td><td className="text-center"><Button variant="link" onClick={() => handleViewMessage(m)}>👁️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { const token = localStorage.getItem('token'); await axios.delete(`${API_BASE_URL}/contacto/${m.id}`, { headers: { Authorization: `Bearer ${token}` } }); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
+                            <tbody>{mensajes.map(m => (<tr key={m.id} style={!m.leido ? { fontWeight: 'bold', backgroundColor: '#f8f9fa' } : {}}><td>{new Date(m.fecha).toLocaleDateString()}</td><td>{m.nombre}</td><td className="text-muted">{m.asunto}</td><td className="text-center"><Button variant="link" onClick={() => handleViewMessage(m)}>👁️</Button><Button variant="link" className="text-danger" onClick={async () => { if(window.confirm("¿Eliminar?")) { const token = localStorage.getItem('token'); await axios.delete(`${API_BASE_URL}/contacto/${m.id}`); fetchData(); } }}>🗑️</Button></td></tr>))}</tbody>
                         </Table>
                     </Card>
                 </Tab>
@@ -287,7 +286,46 @@ const Dashboard = () => {
             <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
                 <Modal.Header closeButton style={{ border: 'none' }}><Modal.Title className="fw-bold">Detalles del Pedido #{selectedOrder?.id}</Modal.Title></Modal.Header>
                 <Modal.Body className="bg-light mx-3 mb-3" style={{ borderRadius: '15px' }}>
-                    {selectedOrder && <div className="p-3"><Row><Col md={6}><p><strong>Cliente:</strong> {selectedOrder.cliente_nombre}</p><p><strong>Email:</strong> {selectedOrder.cliente_email}</p><p><strong>Teléfono:</strong> {selectedOrder.cliente_telefono || selectedOrder.telefono}</p><p><strong>Comprobante:</strong> <Badge bg="info">{selectedOrder.num_comprobante}</Badge></p></Col><Col md={6}><p><strong>Dirección:</strong> {selectedOrder.direccion}</p><p><strong>Método de Pago:</strong> {selectedOrder.metodo_pago}</p></Col></Row><hr/><h4 className="text-end fw-bold" style={{ color: '#2e7d32' }}>Total: ${parseFloat(selectedOrder.total).toFixed(2)}</h4></div>}
+                    {selectedOrder && (
+                        <div className="p-3">
+                            <Row className="mb-4">
+                                <Col md={6}>
+                                    <p><strong>Cliente:</strong> {selectedOrder.cliente_nombre}</p>
+                                    <p><strong>Email:</strong> {selectedOrder.cliente_email}</p>
+                                    <p><strong>Teléfono:</strong> {selectedOrder.cliente_telefono || selectedOrder.telefono}</p>
+                                </Col>
+                                <Col md={6}>
+                                    <p><strong>Dirección:</strong> {selectedOrder.direccion}</p>
+                                    <p><strong>Método de Pago:</strong> {selectedOrder.metodo_pago}</p>
+                                    <p><strong>Comprobante:</strong> <Badge bg="info">{selectedOrder.num_comprobante}</Badge></p>
+                                </Col>
+                            </Row>
+                            
+                            <h5 className="fw-bold mb-3" style={{ color: '#2e7d32' }}>📦 Productos Comprados</h5>
+                            <Table responsive bordered className="bg-white">
+                                <thead className="table-success">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th className="text-center">Cant.</th>
+                                        <th className="text-end">Precio Unit.</th>
+                                        <th className="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedOrder.productos && selectedOrder.productos.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td>{item.nombre}</td>
+                                            <td className="text-center">{item.cantidad}</td>
+                                            <td className="text-end">${parseFloat(item.precio).toFixed(2)}</td>
+                                            <td className="text-end">${(item.cantidad * item.precio).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                            <hr/>
+                            <h4 className="text-end fw-bold" style={{ color: '#2e7d32' }}>Total Final: ${parseFloat(selectedOrder.total).toFixed(2)}</h4>
+                        </div>
+                    )}
                 </Modal.Body>
             </Modal>
 

@@ -23,6 +23,14 @@ const Carrito = () => {
     const iva = subtotalConEnvio * 0.15;
     const totalCompra = subtotalConEnvio + iva;
 
+    const handleNumComprobanteChange = (e) => {
+        const val = e.target.value;
+        // Validación: Solo permite números
+        if (/^\d*$/.test(val)) {
+            setNumComprobante(val);
+        }
+    };
+
     const handleFinalizar = async (e) => {
         e.preventDefault();
         
@@ -59,9 +67,11 @@ const Carrito = () => {
                 <Container className="text-center">
                     <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🛒</div>
                     <h2 style={{ color: '#2e7d32', marginBottom: '30px' }}>El carrito está vacío</h2>
-                    <Button as={Link} to="/productos" className="fw-bold px-5 py-3" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>
-                        Ir a Tienda
-                    </Button>
+                    <Link to="/productos">
+                        <Button className="fw-bold px-5 py-3" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>
+                            Ir a Tienda
+                        </Button>
+                    </Link>
                 </Container>
             </div>
         );
@@ -180,9 +190,10 @@ const Carrito = () => {
                                     <Form.Label className="fw-semibold">Nro. Comprobante / Referencia</Form.Label>
                                     <Form.Control 
                                         required 
-                                        onChange={e => setNumComprobante(e.target.value)} 
+                                        value={numComprobante}
+                                        onChange={handleNumComprobanteChange} 
                                         style={{ borderRadius: '10px', padding: '10px' }} 
-                                        placeholder="Ejemplo: 34722007" 
+                                        placeholder="Solo números (Ej: 34722007)" 
                                     />
                                     <Form.Text className="d-block mt-2" style={{ fontWeight: '700', fontSize: '0.9rem' }}>
                                         ⚠️ IMPORTANTE⚠️: Coloca aquí el número de comprobante que aparece en tu recibo de transferencia o DeUna, esto ayudará a verificar tu pago.
@@ -221,9 +232,11 @@ const Carrito = () => {
                     <div style={{ fontSize: '5rem', marginBottom: '20px' }}>✅</div>
                     <h1 className="fw-bold mb-3" style={{ color: '#1b5e20' }}>¡Pedido Confirmado!</h1>
                     <p style={{ fontSize: '1.1rem', color: '#666', marginBottom: '30px' }}>
-                        Tu pedido ha sido procesado correctamente. Revisa tu correo electrónico para los detalles del envío.
+                        Tu pedido ha sido registrado correctamente. Recibirás una notificación en breve.
                     </p>
-                    <Button as={Link} to="/" className="fw-bold px-5 py-3" size="lg" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Volver al Inicio</Button>
+                    <Link to="/">
+                        <Button className="fw-bold px-5 py-3" size="lg" style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '12px' }}>Volver al Inicio</Button>
+                    </Link>
                 </Card>
             )}
             </Container>
