@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Toast, ToastContainer } from 'react-bootstrap';
 import { useCart } from '../context/CartContext';
 import axios from 'axios';
 import API_BASE_URL from '../api';
 
 const Productos = () => {
     const [productos, setProductos] = useState([]);
+    const [showToast, setShowToast] = useState(false);
     const { addToCart } = useCart();
 
     useEffect(() => {
@@ -20,8 +21,27 @@ const Productos = () => {
         cargarProductos();
     }, []);
 
+    const handleAddToCart = (producto) => {
+        addToCart({ ...producto, cantidad: 1 });
+        setShowToast(true);
+    };
+
     return (
         <div style={{ backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '40px', paddingBottom: '60px' }}>
+            <ToastContainer position="middle-center" className="p-3" style={{ zIndex: 9999 }}>
+                <Toast 
+                    show={showToast} 
+                    onClose={() => setShowToast(false)} 
+                    delay={2000} 
+                    autohide 
+                    style={{ backgroundColor: '#2e7d32', color: 'white', borderRadius: '15px', border: 'none' }}
+                >
+                    <Toast.Body className="text-center fw-bold p-3">
+                        🛒 Producto agregado al carrito
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
+
             <Container>
                 <div className="text-center mb-5">
                     <h2 className="fw-bold" style={{ color: '#1b5e20', fontSize: '2.5rem' }}>Nuestros Productos</h2>
@@ -52,7 +72,7 @@ const Productos = () => {
                                     <div className="d-flex justify-content-between align-items-center mt-auto">
                                         <h3 className="fw-bold mb-0" style={{ color: '#1b5e20' }}>${producto.precio}</h3>
                                         <Button 
-                                            onClick={() => addToCart({...producto, cantidad: 1})}
+                                            onClick={() => handleAddToCart(producto)}
                                             disabled={producto.stock <= 0}
                                             style={{ backgroundColor: '#2e7d32', border: 'none', borderRadius: '10px', padding: '10px 20px' }}
                                             className="fw-bold shadow-sm"

@@ -28,10 +28,9 @@ const Dashboard = () => {
     const prevMensajesCount = useRef(0);
 
     const playNotificationSound = () => {
-        // Tono profesional tipo "Chime"
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audio.volume = 0.8;
-        audio.play().catch(e => console.log("Audio esperando interacción del usuario", e));
+        audio.play().catch(e => console.log("Esperando interacción para habilitar audio..."));
     };
 
     const fetchData = async () => {
@@ -43,12 +42,16 @@ const Dashboard = () => {
             setProductos(resProd.data);
 
             const resOrders = await axios.get(`${API_BASE_URL}/pedidos`);
-            if (prevPedidosCount.current !== 0 && resOrders.data.length > prevPedidosCount.current) playNotificationSound();
+            if (prevPedidosCount.current !== 0 && resOrders.data.length > prevPedidosCount.current) {
+                playNotificationSound();
+            }
             prevPedidosCount.current = resOrders.data.length;
             setPedidos(resOrders.data);
 
             const resMsgs = await axios.get(`${API_BASE_URL}/contacto`);
-            if (prevMensajesCount.current !== 0 && resMsgs.data.length > prevMensajesCount.current) playNotificationSound();
+            if (prevMensajesCount.current !== 0 && resMsgs.data.length > prevMensajesCount.current) {
+                playNotificationSound();
+            }
             prevMensajesCount.current = resMsgs.data.length;
 
             const mensajesFromServer = resMsgs.data.map(m => ({
@@ -68,7 +71,18 @@ const Dashboard = () => {
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 5000);
-        return () => clearInterval(interval);
+        
+        // Desbloqueo de audio en el primer click
+        const unlockAudio = () => {
+            playNotificationSound();
+            window.removeEventListener('click', unlockAudio);
+        };
+        window.addEventListener('click', unlockAudio);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('click', unlockAudio);
+        };
     }, []);
 
     const handleCrearAdmin = async (e) => {
@@ -115,6 +129,7 @@ const Dashboard = () => {
             setNuevoProducto({ nombre: '', descripcion: '', precio: '', stock: '' });
             setImagen(null);
             fetchData();
+            alert("Producto creado exitosamente");
         } catch (err) { alert("Error al crear: " + (err.response?.data?.mensaje || "Problema de permisos")); }
     };
 
