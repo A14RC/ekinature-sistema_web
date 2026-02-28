@@ -1,27 +1,28 @@
 const nodemailer = require('nodemailer');
 
-// Usamos una configuración optimizada para entornos de nube
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // STARTTLS
+    secure: false,
     auth: {
         user: 'ocpplagas@gmail.com',
         pass: 'shfi htdy yotb ftax'
     },
-    // Aumentamos los tiempos de espera para evitar el timeout en Render
-    connectionTimeout: 20000, 
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
-    family: 4, // Forzamos IPv4 (Vital para evitar el error ENETUNREACH)
-    pool: true // Mantiene la conexión abierta para mayor velocidad
+    // Forzado estricto de IPv4 y tiempos de espera
+    family: 4, 
+    connectionTimeout: 30000, 
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    dnsTimeout: 30000,
+    debug: true, // Esto imprimirá más detalle en el log si algo falla
+    logger: true 
 });
 
 transporter.verify((error) => {
     if (error) {
-        console.log("❌ Error SMTP (Reintentando...):", error.message);
+        console.log("❌ FALLO SMTP:", error.message);
     } else {
-        console.log("✅ SISTEMA DE CORREOS CONECTADO CON ÉXITO");
+        console.log("✅ SISTEMA DE CORREOS OPERATIVO");
     }
 });
 
@@ -32,8 +33,7 @@ const enviarConfirmacionPedido = (emailCliente, datosPedido) => {
         subject: `✅ Pedido Confirmado - EkiNature #${datosPedido.pedidoId}`,
         html: `<h2>¡Hola ${datosPedido.cliente_nombre}!</h2><p>Tu pedido #${datosPedido.pedidoId} ha sido recibido.</p>`
     };
-    // No usamos await aquí para que no bloquee el flujo si la red está lenta
-    transporter.sendMail(mailOptions).catch(err => console.log('⚠️ Fallo diferido mail cliente:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('⚠️ Error diferido:', err.message));
 };
 
 const enviarAlertaAdmin = (datosPedido) => {
@@ -41,9 +41,9 @@ const enviarAlertaAdmin = (datosPedido) => {
         from: '"EkiNature System" <ocpplagas@gmail.com>',
         to: 'ocpplagas@gmail.com',
         subject: `🛒 NUEVA ORDEN - #${datosPedido.pedidoId}`,
-        text: `Se recibió una orden por $${datosPedido.total}`
+        text: `Orden recibida por $${datosPedido.total}`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('⚠️ Fallo diferido mail admin:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('⚠️ Error admin:', err.message));
 };
 
 const enviarAlertaContacto = (datos) => {
@@ -53,7 +53,7 @@ const enviarAlertaContacto = (datos) => {
         subject: `Consulta: ${datos.asunto}`,
         text: `Mensaje: ${datos.mensaje}`
     };
-    transporter.sendMail(mailOptions).catch(err => console.log('⚠️ Fallo diferido mail contacto:', err.message));
+    transporter.sendMail(mailOptions).catch(err => console.log('⚠️ Error contacto:', err.message));
 };
 
 module.exports = { enviarConfirmacionPedido, enviarAlertaAdmin, enviarAlertaContacto };
